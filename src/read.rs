@@ -2,6 +2,11 @@
 
 use crate::error::Pod5Error;
 
+pub use uuid;
+
+#[cfg(feature = "serde")]
+use serde::ser::{Serialize, SerializeStruct, Serializer};
+
 pub struct Read
 {
 	pub(crate) inner: crate::ffi::ReadBatchRowInfo_t,
@@ -40,9 +45,9 @@ impl Read
 		crate::pod5_ok!(signal)
 	}
 
-	pub fn read_id(&self) -> [u8; 16]
+	pub fn uuid(&self) -> uuid::Uuid
 	{
-		self.inner.read_id
+		uuid::Uuid::from_bytes(self.inner.read_id)
 	}
 
 	pub fn read_number(&self) -> u32
@@ -143,5 +148,47 @@ impl Read
 	pub fn num_samples(&self) -> u64
 	{
 		self.inner.num_samples
+	}
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Read
+{
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		// Start serializing the struct with the specified number of fields
+		let mut state = serializer.serialize_struct("Read", 21)?;
+
+		// Serialize each field with its name
+		state.serialize_field("uuid", &self.uuid())?;
+		state.serialize_field("signal", &self.signal().expect("Error obtaining signal"))?;
+		state.serialize_field("read_number", &self.read_number())?;
+		state.serialize_field("start_sample", &self.start_sample())?;
+		state.serialize_field("median_before", &self.median_before())?;
+		state.serialize_field("channel", &self.channel())?;
+		state.serialize_field("well", &self.well())?;
+		state.serialize_field("pore_type", &self.pore_type())?;
+		state.serialize_field("calibration_offset", &self.calibration_offset())?;
+		state.serialize_field("calibration_scale", &self.calibration_scale())?;
+		state.serialize_field("end_reason", &self.end_reason())?;
+		state.serialize_field("end_reason_forced", &self.end_reason_forced())?;
+		state.serialize_field("run_info", &self.run_info())?;
+		state.serialize_field("num_minknow_events", &self.num_minknow_events())?;
+		state.serialize_field("tracked_scaling_scale", &self.tracked_scaling_scale())?;
+		state.serialize_field("tracked_scaling_shift", &self.tracked_scaling_shift())?;
+		state.serialize_field("predicted_scaling_scale", &self.predicted_scaling_scale())?;
+		state.serialize_field("predicted_scaling_shift", &self.predicted_scaling_shift())?;
+		state.serialize_field(
+			"num_reads_since_mux_change",
+			&self.num_reads_since_mux_change(),
+		)?;
+		state.serialize_field("time_since_mux_change", &self.time_since_mux_change())?;
+		state.serialize_field("signal_row_count", &self.signal_row_count())?;
+		state.serialize_field("num_samples", &self.num_samples())?;
+
+		// End serialization
+		state.end()
 	}
 }

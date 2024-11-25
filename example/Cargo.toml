@@ -1,0 +1,19 @@
+[package]
+name = "decapod_example"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+bindgen = "0.70.1"
+
+[dependencies]
+decapod = { path = "../", version = "0.1.0", features = ["serde"] }
+thiserror = "2.0.3"
+uuid = "1.11.0"
+anyhow = "1.0.93"
+serde_json = "1.0.133"
+
+[[bin]]
+name = "decapod_example"
+path = "src/main.rs"
+

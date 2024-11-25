@@ -81,13 +81,18 @@ impl Reader
 		crate::pod5_ok!(read_count)
 	}
 
-	pub fn read_ids(&self) -> Result<Vec<[u8; 16]>, Pod5Error>
+	pub fn read_ids(&self) -> Result<Vec<uuid::Uuid>, Pod5Error>
 	{
 		let read_count = self.count()?;
 		let mut read_ids = vec![[0; 16]; read_count];
 		unsafe {
 			crate::ffi::pod5_get_read_ids(self.ptr, read_count, read_ids.as_mut_ptr());
 		}
+
+		let read_ids = read_ids
+			.iter()
+			.map(|&read_id| uuid::Uuid::from_bytes(read_id))
+			.collect::<Vec<uuid::Uuid>>();
 
 		crate::pod5_ok!(read_ids)
 	}
