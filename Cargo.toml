@@ -1,0 +1,21 @@
+[package]
+name = "decapod"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+bindgen = "0.70.1"
+
+[dependencies]
+thiserror = "2.0.3"
+
+[dependencies.anyhow]
+version = "1.0.93"
+
+[lib]
+name = "decapod"
+path = "src/lib.rs"
+
+[[bin]]
+name = "decapod_example"
+path = "src/main.rs"
