@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::ffi::CStr;
-
+use std::ptr;
 use crate::error::Pod5Error;
 
 pub use uuid;
@@ -84,21 +84,22 @@ impl Read
 		self.inner.pore_type
 	}
 
-	pub fn pore_type_str(&self) -> crate::error::Result<&str>
+	pub fn pore_type_string(&self) -> crate::error::Result<String>
 	{
-		let mut c_string = [0i8; 5];
-		let mut str_length: usize = 5;
+		let mut c_string = vec![0i8; 10];
+		let mut str_length: usize = 10;
 		unsafe {
 			crate::ffi::pod5_get_pore_type(
 				self.batch_record,
 				self.pore_type(),
-				&mut c_string as *mut i8,
+				c_string.as_mut_ptr(),
 				&mut str_length,
 			);
 		}
 
-		crate::pod5_ok!(unsafe { CStr::from_ptr(&c_string as *const i8) }
+		crate::pod5_ok!(unsafe { CStr::from_ptr(c_string.as_ptr()) }
 			.to_str()
+			.map(|s| s.to_string())
 			.expect("error"))
 	}
 

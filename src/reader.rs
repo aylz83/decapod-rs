@@ -64,6 +64,9 @@ impl Reader
 		crate::pod5_ok!(reader)
 	}
 
+	///
+	/// Opens a POD5
+	///
 	pub fn from_file(filename: &str) -> Result<Reader, crate::error::Pod5Error>
 	{
 		unsafe {

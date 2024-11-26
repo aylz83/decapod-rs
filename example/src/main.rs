@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()>
 		//let serialised = serde_json::to_string(&read).unwrap();
 		//println!("{}", serialised);
 
-		//println!("{:?}", read.pore_type_str());
+		println!("pore type = {}", read.pore_type_string()?);
 	}
 
 	let runinfo_iter = reader.run_info_iter()?;
