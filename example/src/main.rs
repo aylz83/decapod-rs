@@ -3,9 +3,13 @@ use decapod::reader;
 use serde_json;
 use anyhow;
 
+use std::env;
+
 fn main() -> anyhow::Result<()>
 {
-	let reader = reader::Reader::from_file("test.pod5")?;
+	let args: Vec<String> = env::args().collect();
+
+	let reader = reader::Reader::from_file(args[1].as_str())?;
 
 	println!("{:?}", &reader.read_ids()?);
 
@@ -17,7 +21,7 @@ fn main() -> anyhow::Result<()>
 		println!("{:?}", &read.uuid());
 
 		let serialised = serde_json::to_string(&read).unwrap();
-		println!("{}", serialised);
+		//println!("{}", serialised);
 
 		//println!("{:?}", read.signal());
 	}
