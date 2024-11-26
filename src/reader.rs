@@ -1,5 +1,8 @@
 use std::{ffi::CString, ptr};
 
+use std::io::{Read as StdRead, Seek, SeekFrom};
+
+use crate::ffi;
 pub use crate::reads::*;
 pub use crate::read::*;
 
@@ -28,12 +31,14 @@ impl ReaderOptions
 }
 pub struct Reader
 {
-	pub(crate) ptr: *mut crate::ffi::Pod5FileReader_t,
+	pub(crate) inner: *mut crate::ffi::Pod5FileReader_t,
+
+	pub(crate) has_compression: bool,
 }
 
 impl Reader
 {
-	pub fn from_file_with_options<'a, 'b>(
+	pub fn from_file_with_options<'a>(
 		filename: &'a str,
 		options: &'a ReaderOptions,
 	) -> crate::error::Result<Reader>
@@ -51,7 +56,13 @@ impl Reader
 		let ptr =
 			unsafe { crate::ffi::pod5_open_file_options(c_string.as_ptr(), &options.to_ffi()) };
 
-		crate::pod5_ok!(Reader { ptr })
+		let mut reader = Reader {
+			inner: ptr,
+			has_compression: false,
+		};
+		reader.detect_signal_compression(filename)?;
+
+		crate::pod5_ok!(reader)
 	}
 
 	pub fn from_file(filename: &str) -> Result<Reader, crate::error::Pod5Error>
@@ -68,14 +79,20 @@ impl Reader
 
 		let ptr = unsafe { crate::ffi::pod5_open_file(c_string.as_ptr()) };
 
-		crate::pod5_ok!(Reader { ptr })
+		let mut reader = Reader {
+			inner: ptr,
+			has_compression: false,
+		};
+		reader.detect_signal_compression(filename)?;
+
+		crate::pod5_ok!(reader)
 	}
 
 	pub fn count(&self) -> Result<usize, Pod5Error>
 	{
 		let mut read_count: usize = 0;
 		unsafe {
-			crate::ffi::pod5_get_read_count(self.ptr, &mut read_count);
+			crate::ffi::pod5_get_read_count(self.inner, &mut read_count);
 		}
 
 		crate::pod5_ok!(read_count)
@@ -86,7 +103,7 @@ impl Reader
 		let read_count = self.count()?;
 		let mut read_ids = vec![[0; 16]; read_count];
 		unsafe {
-			crate::ffi::pod5_get_read_ids(self.ptr, read_count, read_ids.as_mut_ptr());
+			crate::ffi::pod5_get_read_ids(self.inner, read_count, read_ids.as_mut_ptr());
 		}
 
 		let read_ids = read_ids
@@ -99,9 +116,10 @@ impl Reader
 
 	pub fn info(&self) -> Result<crate::fileinfo::FileInfo, Pod5Error>
 	{
-		let file_ptr = ptr::null_mut();
+		let mut file_ptr: ffi::FileInfo = Default::default();
+
 		unsafe {
-			crate::ffi::pod5_get_file_info(self.ptr, file_ptr);
+			crate::ffi::pod5_get_file_info(self.inner, &mut file_ptr);
 		}
 
 		crate::pod5_ok!(crate::fileinfo::FileInfo { inner: file_ptr })
@@ -111,7 +129,7 @@ impl Reader
 	{
 		let mut batch_count: usize = 0;
 		unsafe {
-			crate::ffi::pod5_get_read_batch_count(&mut batch_count, self.ptr);
+			crate::ffi::pod5_get_read_batch_count(&mut batch_count, self.inner);
 		}
 
 		crate::pod5_ok!(Reads {
@@ -124,6 +142,57 @@ impl Reader
 		})
 	}
 
+	fn detect_signal_compression(&mut self, path: &str) -> crate::error::Result<()>
+	{
+		let mut file_data: ffi::EmbeddedFileData_t = Default::default();
+
+		unsafe {
+			ffi::pod5_get_file_signal_table_location(self.inner, &mut file_data);
+		}
+
+		//let c_str = unsafe { CStr::from_ptr(file_data.file_name) };
+		//let str_slice = c_str.to_str().expect("Invalid UTF-8 sequence");
+
+		let mut file = std::fs::File::open(path)?;
+
+		file.seek(SeekFrom::Start(file_data.offset as u64))?;
+
+		let mut buffer = vec![0u8; file_data.length];
+		file.read_exact(&mut buffer)?;
+
+		let cursor = std::io::Cursor::new(buffer); // Wrap buffer in a Cursor for StreamReader
+		let reader = match arrow::ipc::reader::FileReader::try_new(cursor, None)
+		{
+			Ok(reader) => reader,
+			Err(_) =>
+			{
+				return Err(crate::error::Pod5Error::ArrowCompressionError(
+					"unable to determine signal compression".to_string(),
+				))
+			}
+		};
+
+		let schema = reader.schema();
+		let signal_field = match schema.field_with_name("signal")
+		{
+			Ok(field) => field,
+			Err(_) =>
+			{
+				return Err(crate::error::Pod5Error::ArrowCompressionError(
+					"unable to determine signal compression".to_string(),
+				))
+			}
+		};
+
+		match signal_field.data_type()
+		{
+			arrow::datatypes::DataType::LargeBinary => self.has_compression = true,
+			_ => self.has_compression = false,
+		};
+
+		Ok(())
+	}
+
 	//fn read(&self, read: &mut Read) -> bool
 	//{
 	//}
@@ -134,7 +203,7 @@ impl Drop for Reader
 	fn drop(&mut self)
 	{
 		unsafe {
-			crate::ffi::pod5_close_and_free_reader(self.ptr);
+			crate::ffi::pod5_close_and_free_reader(self.inner);
 			crate::ffi::pod5_terminate();
 		}
 	}

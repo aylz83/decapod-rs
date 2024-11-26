@@ -15,6 +15,8 @@ pub struct Read
 	pub(crate) batch_row: usize,
 	pub(crate) reader: *mut crate::ffi::Pod5FileReader_t,
 	pub(crate) batch_record: *mut crate::ffi::Pod5ReadRecordBatch_t,
+
+	pub(crate) has_compression: bool,
 }
 
 impl Read
@@ -90,14 +92,14 @@ impl Read
 		self.inner.calibration_scale
 	}
 
-	pub fn end_reason(&self) -> i16
+	pub fn end_reason(&self) -> crate::endreason::EndReason
 	{
-		self.inner.end_reason
+		crate::endreason::EndReason::end_reason_from_code(self.inner.end_reason)
 	}
 
-	pub fn end_reason_forced(&self) -> u8
+	pub fn end_reason_forced(&self) -> bool
 	{
-		self.inner.end_reason_forced
+		self.inner.end_reason_forced == 1
 	}
 
 	pub fn run_info(&self) -> i16

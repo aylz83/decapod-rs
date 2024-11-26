@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()>
 		println!("{:?}", &read.uuid());
 
 		let serialised = serde_json::to_string(&read).unwrap();
-		//println!("{}", serialised);
+		println!("{}", serialised);
 
 		//println!("{:?}", read.signal());
 	}

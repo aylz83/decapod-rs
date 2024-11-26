@@ -7,7 +7,8 @@ edition = "2021"
 bindgen = "0.70.1"
 
 [dependencies]
-serde = { version = "1.0.215", optional = true }
+arrow = { version = "53.3.0", default-features = false, features = ["arrow-ipc", "ipc"] }
+serde = { version = "1.0.215", optional = true, features = ["derive"] }
 thiserror = "2.0.3"
 uuid = "1.11.0"
 

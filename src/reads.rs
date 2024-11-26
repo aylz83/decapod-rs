@@ -38,7 +38,7 @@ impl<'a> Iterator for Reads<'a>
 			unsafe {
 				crate::ffi::pod5_get_read_batch(
 					&mut self.inner,
-					self.reader.ptr,
+					self.reader.inner,
 					self.current_batch,
 				);
 			}
@@ -72,8 +72,9 @@ impl<'a> Iterator for Reads<'a>
 			inner: read_ptr,
 			table_ver,
 			batch_row: self.current_row,
-			reader: self.reader.ptr,
+			reader: self.reader.inner,
 			batch_record: self.inner,
+			has_compression: self.reader.has_compression,
 		};
 
 		self.current_row += 2;

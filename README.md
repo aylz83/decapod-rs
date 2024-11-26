@@ -22,8 +22,7 @@ cargo build # build the example
 # Planned features
 
 - [x] Reading of pod5, including signal
-- [ ] Reading additional metadata from the pod5 such as run info
-- [ ] Decompression of signals
+- [ ] Reading additional (metadata) from the pod5 such as run info or end reason
 - [x] Serialisation of reads with serde
 - [ ] Conversion of reads to something like Polars dataframes
 - [ ] Writing pod5 files

@@ -3,6 +3,8 @@
 #![allow(dead_code)]
 #![allow(clippy::upper_case_acronyms)]
 
+use std::ptr;
+
 include!("bindings.rs");
 
 impl Default for ReadBatchRowInfo_t
@@ -31,6 +33,33 @@ impl Default for ReadBatchRowInfo_t
 			predicted_scaling_scale: 0.0,
 			predicted_scaling_shift: 0.0,
 			time_since_mux_change: 0.0,
+		}
+	}
+}
+
+impl Default for FileInfo_t
+{
+	fn default() -> Self
+	{
+		FileInfo_t {
+			file_identifier: [0; 16],
+			version: FileInfo_Version {
+				major: 0,
+				minor: 0,
+				revision: 0,
+			},
+		}
+	}
+}
+
+impl Default for EmbeddedFileData_t
+{
+	fn default() -> Self
+	{
+		EmbeddedFileData_t {
+			file_name: ptr::null(),
+			offset: 0,
+			length: 0,
 		}
 	}
 }

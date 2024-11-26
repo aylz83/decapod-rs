@@ -96,6 +96,10 @@ pub enum Pod5Error
 	SerialisationError(String),
 	#[error("String not long enough: {0}")]
 	StringLengthError(String),
+	#[error("IO Arrow Error")]
+	ArrowIOError(#[from] std::io::Error),
+	#[error("Compression Arrow Error")]
+	ArrowCompressionError(String),
 }
 
 impl Pod5Error
