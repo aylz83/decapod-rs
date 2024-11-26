@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::ffi::CStr;
+
 use crate::error::Pod5Error;
 
 pub use uuid;
@@ -80,6 +82,24 @@ impl Read
 	pub fn pore_type(&self) -> i16
 	{
 		self.inner.pore_type
+	}
+
+	pub fn pore_type_str(&self) -> crate::error::Result<&str>
+	{
+		let mut c_string = [0i8; 5];
+		let mut str_length: usize = 5;
+		unsafe {
+			crate::ffi::pod5_get_pore_type(
+				self.batch_record,
+				self.pore_type(),
+				&mut c_string as *mut i8,
+				&mut str_length,
+			);
+		}
+
+		crate::pod5_ok!(unsafe { CStr::from_ptr(&c_string as *const i8) }
+			.to_str()
+			.expect("error"))
 	}
 
 	pub fn calibration_offset(&self) -> f32

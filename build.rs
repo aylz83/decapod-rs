@@ -40,11 +40,20 @@ fn main()
 		.status()
 		.expect("Failed to build with CMake");
 
+	pkg_config::Config::new()
+		.atleast_version("1.0.0")
+		.probe("libzstd")
+		.unwrap();
+	pkg_config::Config::new()
+		.atleast_version("9.0.0")
+		.probe("arrow")
+		.unwrap();
+
 	// Specify the static library
 	println!("cargo:rustc-link-search=native=third_party/pod5-file-format/build/Release/lib");
 	println!("cargo:rustc-link-lib=static=pod5_format");
-	println!("cargo:rustc-link-lib=arrow");
-	println!("cargo:rustc-link-lib=zstd");
+	//println!("cargo:rustc-link-lib=arrow");
+	//println!("cargo:rustc-link-lib=zstd");
 	println!("cargo:rustc-link-lib=dylib=stdc++");
 	println!(
 		"cargo:rerun-if-changed=third_party/pod5-file-format/build/Release/lib/ibpod5_format.a"

@@ -2,7 +2,6 @@ use std::{ffi::CString, ptr};
 
 use std::io::{Read as StdRead, Seek, SeekFrom};
 
-use crate::ffi;
 pub use crate::reads::*;
 pub use crate::read::*;
 
@@ -116,13 +115,27 @@ impl Reader
 
 	pub fn info(&self) -> Result<crate::fileinfo::FileInfo, Pod5Error>
 	{
-		let mut file_ptr: ffi::FileInfo = Default::default();
+		let mut file_ptr: crate::ffi::FileInfo = Default::default();
 
 		unsafe {
 			crate::ffi::pod5_get_file_info(self.inner, &mut file_ptr);
 		}
 
 		crate::pod5_ok!(crate::fileinfo::FileInfo { inner: file_ptr })
+	}
+
+	pub fn run_info_iter(&self) -> crate::error::Result<crate::runinfo::RunInfoIter>
+	{
+		let mut run_info_count = 0;
+		unsafe {
+			crate::ffi::pod5_get_file_run_info_count(self.inner, &mut run_info_count);
+		}
+
+		crate::pod5_ok!(crate::runinfo::RunInfoIter {
+			rows: run_info_count,
+			reader: self,
+			current_row: 0
+		})
 	}
 
 	pub fn reads(&self) -> crate::error::Result<Reads>
@@ -144,10 +157,10 @@ impl Reader
 
 	fn detect_signal_compression(&mut self, path: &str) -> crate::error::Result<()>
 	{
-		let mut file_data: ffi::EmbeddedFileData_t = Default::default();
+		let mut file_data: crate::ffi::EmbeddedFileData_t = Default::default();
 
 		unsafe {
-			ffi::pod5_get_file_signal_table_location(self.inner, &mut file_data);
+			crate::ffi::pod5_get_file_signal_table_location(self.inner, &mut file_data);
 		}
 
 		//let c_str = unsafe { CStr::from_ptr(file_data.file_name) };

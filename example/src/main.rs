@@ -20,10 +20,18 @@ fn main() -> anyhow::Result<()>
 		let read = read?;
 		println!("{:?}", &read.uuid());
 
-		let serialised = serde_json::to_string(&read).unwrap();
-		println!("{}", serialised);
+		//let serialised = serde_json::to_string(&read).unwrap();
+		//println!("{}", serialised);
 
-		//println!("{:?}", read.signal());
+		//println!("{:?}", read.pore_type_str());
+	}
+
+	let runinfo_iter = reader.run_info_iter()?;
+
+	for runinfo in runinfo_iter
+	{
+		let runinfo = runinfo?;
+		println!("{}", runinfo);
 	}
 
 	Ok(())

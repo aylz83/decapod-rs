@@ -5,7 +5,7 @@ rust bindings for the pod5 library
 
 decapod-rs aims to provide rust bindings for the pod5-file-format library in a rust idiomatic way.
 
-It is work in progress, currently only supports reading pod5 files with limited usage, but providing bindings for writing pod5 is planned.
+It is work in progress, currently only supports reading pod5 files with limited usage, but providing bindings for writing pod5 files is planned.
 
 # Building
 
@@ -22,7 +22,7 @@ cargo build # build the example
 # Planned features
 
 - [x] Reading of pod5, including signal
-- [ ] Reading additional (metadata) from the pod5 such as run info or end reason
+- [x] Reading additional (metadata) from the pod5
 - [x] Serialisation of reads with serde
 - [ ] Conversion of reads to something like Polars dataframes
 - [ ] Writing pod5 files

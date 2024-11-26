@@ -2,9 +2,18 @@
 name = "decapod"
 version = "0.1.0"
 edition = "2021"
+licence = "MIT"
+description = "rust bindings for the pod5 library"
+readme = "README.md"
+keywords = ["nanopore", "sequencing", "bioinformatics"]
+authors = ["Eilidh Ward"]
+repository = "https://github.com/aylz83/decapod-rs/"
+documentation = ""
+categories = ["science", "filesystem"]
 
 [build-dependencies]
 bindgen = "0.70.1"
+pkg-config = "0.3.31"
 
 [dependencies]
 arrow = { version = "53.3.0", default-features = false, features = ["arrow-ipc", "ipc"] }
@@ -14,7 +23,3 @@ uuid = "1.11.0"
 
 [features]
 serde = ["dep:serde", "uuid/serde"]
-
-[lib]
-name = "decapod"
-path = "src/lib.rs"

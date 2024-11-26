@@ -1,4 +1,6 @@
 use std::ffi::CStr;
+use std::fmt;
+use std::ptr;
 
 pub struct KeyValueData
 {
@@ -171,6 +173,69 @@ impl RunInfo
 	}
 }
 
+impl fmt::Display for RunInfo
+{
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+	{
+		writeln!(
+			f,
+			"acquisition_id = {}",
+			self.acquisition_id().expect("error")
+		)?;
+		writeln!(
+			f,
+			"acquisition_start_time_ms = {}",
+			self.acquisition_start_time_ms()
+		)?;
+		writeln!(f, "adc_max = {}", self.adc_max())?;
+		writeln!(f, "adc_min {}", self.adc_min())?;
+		//write!(f, "{}\n", self.context_tags())?;
+		writeln!(
+			f,
+			"experiment_name = {}",
+			self.experiment_name().expect("error")
+		)?;
+		writeln!(f, "flow_cell_id = {}", self.flow_cell_id().expect("error"))?;
+		writeln!(
+			f,
+			"flow_cell_product_code = {}",
+			self.flow_cell_product_code().expect("error")
+		)?;
+		writeln!(f, "product_name = {}", self.protocol_name().expect("error"))?;
+		writeln!(
+			f,
+			"protocol_run_id = {}",
+			self.protocol_run_id().expect("error")
+		)?;
+		writeln!(
+			f,
+			"protocol_start_time_ms = {}",
+			self.protocol_start_time_ms()
+		)?;
+		writeln!(f, "sample_id = {}", self.sample_id().expect("error"))?;
+		writeln!(f, "sample_rate = {}", self.sample_rate())?;
+		writeln!(
+			f,
+			"sequencing_kit = {}",
+			self.sequencing_kit().expect("error")
+		)?;
+		writeln!(
+			f,
+			"sequencer_position = {}",
+			self.sequencer_position().expect("error")
+		)?;
+		writeln!(
+			f,
+			"sequencer_position_type = {}",
+			self.sequencer_position_type().expect("error")
+		)?;
+		writeln!(f, "software = {}", self.software().expect("error"))?;
+		writeln!(f, "system_name = {}", self.system_name().expect("error"))?;
+		writeln!(f, "system_type = {}", self.system_type().expect("error"))
+		//write!(f, "{}\n", self.tracking_id())
+	}
+}
+
 impl Drop for RunInfo
 {
 	fn drop(&mut self)
@@ -178,5 +243,38 @@ impl Drop for RunInfo
 		unsafe {
 			crate::ffi::pod5_free_run_info(self.inner);
 		}
+	}
+}
+
+pub struct RunInfoIter<'a>
+{
+	pub(crate) rows: u16,
+	pub(crate) reader: &'a crate::reader::Reader,
+
+	pub(crate) current_row: u16,
+}
+
+impl<'a> Iterator for RunInfoIter<'a>
+{
+	type Item = crate::error::Result<RunInfo>;
+
+	fn next(&mut self) -> Option<Self::Item>
+	{
+		if self.current_row == self.rows
+		{
+			self.current_row = 0;
+			return None;
+		}
+
+		let mut run_info = ptr::null_mut();
+
+		unsafe {
+			crate::ffi::pod5_get_file_run_info(self.reader.inner, self.current_row, &mut run_info);
+		}
+
+		crate::pod5_check_error!();
+		self.current_row += 1;
+
+		crate::pod5_ok!(Some, RunInfo { inner: run_info })
 	}
 }
