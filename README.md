@@ -1,4 +1,4 @@
-# decapod-rs - 
+# decapod-rs 
 rust bindings for the pod5 library
 
 ![decapod-rs logo](assets/decapod_logo.png)
@@ -18,6 +18,12 @@ cd example
 cargo build # build the example
 ./target/debug/decapod_example ../third_party/pod5-file-format/test_data/multi_fast5_zip_v3.pod5 
 ```
+
+# Features
+
+- Iterate over all reads
+- Extract run info
+- Serialise reads with serde
 
 # Planned features
 
