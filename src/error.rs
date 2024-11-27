@@ -10,7 +10,10 @@ macro_rules! pod5_check_error {
 				let c_str = std::ffi::CStr::from_ptr($crate::pod5_ffi::pod5_get_error_string());
 				return Some(Err($crate::error::Pod5Error::from_error_code(
 					error_code,
-					c_str.to_str().expect("error").to_string(),
+					c_str
+						.to_str()
+						.unwrap_or("Failed to obtain error message")
+						.to_string(),
 				)));
 			}
 		}
@@ -42,7 +45,10 @@ macro_rules! pod5_ok {
 				let c_str = std::ffi::CStr::from_ptr($crate::pod5_ffi::pod5_get_error_string());
 				return Err($crate::error::Pod5Error::from_error_code(
 					error_code,
-					c_str.to_str().expect("error").to_string(),
+					c_str
+						.to_str()
+						.unwrap_or("Failed to obtain error message")
+						.to_string(),
 				));
 			}
 		}
@@ -58,7 +64,7 @@ macro_rules! pod5_ok {
 					error_code,
 					c_str
 						.to_str()
-						.expect("Failed to convert error string")
+						.unwrap_or("Failed to obtain error message")
 						.to_string(),
 				)));
 			}
@@ -100,6 +106,8 @@ pub enum Pod5Error
 	ArrowIOError(#[from] std::io::Error),
 	#[error("Compression Arrow Error")]
 	ArrowCompressionError(String),
+	#[error("String conversion error")]
+	StringError(#[from] std::str::Utf8Error),
 }
 
 impl Pod5Error

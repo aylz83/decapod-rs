@@ -97,8 +97,7 @@ impl Read
 
 		crate::pod5_ok!(unsafe { CStr::from_ptr(c_string.as_ptr()) }
 			.to_str()
-			.map(|s| s.to_string())
-			.expect("error"))
+			.map(|s| s.to_string())?)
 	}
 
 	pub fn calibration_offset(&self) -> f32
@@ -184,7 +183,7 @@ impl Serialize for Read
 
 		// Serialize each field with its name
 		state.serialize_field("uuid", &self.uuid())?;
-		state.serialize_field("signal", &self.signal().expect("Error obtaining signal"))?;
+		state.serialize_field("signal", &self.signal().unwrap_or(vec![0i16; 0]))?;
 		state.serialize_field("read_number", &self.read_number())?;
 		state.serialize_field("start_sample", &self.start_sample())?;
 		state.serialize_field("median_before", &self.median_before())?;

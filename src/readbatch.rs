@@ -7,12 +7,6 @@ use std::collections::HashMap;
 #[cfg(feature = "polars")]
 use polars::prelude::*;
 
-enum ValueType
-{
-	String(String),
-	U64(u64),
-}
-
 pub struct BatchRecord
 {
 	pub(crate) inner: *mut crate::pod5_ffi::Pod5ReadRecordBatch_t,

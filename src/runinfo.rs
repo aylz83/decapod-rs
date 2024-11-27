@@ -171,6 +171,13 @@ impl RunInfo
 			inner: unsafe { (*self.inner).tracking_id },
 		}
 	}
+
+	fn handle_result<T: fmt::Display, E: fmt::Debug>(result: Result<T, E>) -> String
+	{
+		result
+			.map(|v| v.to_string())
+			.unwrap_or_else(|_| "<invalid UTF-8>".to_string())
+	}
 }
 
 impl fmt::Display for RunInfo
@@ -180,7 +187,7 @@ impl fmt::Display for RunInfo
 		writeln!(
 			f,
 			"acquisition_id = {}",
-			self.acquisition_id().expect("error")
+			RunInfo::handle_result(self.acquisition_id())
 		)?;
 		writeln!(
 			f,
@@ -193,45 +200,65 @@ impl fmt::Display for RunInfo
 		writeln!(
 			f,
 			"experiment_name = {}",
-			self.experiment_name().expect("error")
+			RunInfo::handle_result(self.experiment_name())
 		)?;
-		writeln!(f, "flow_cell_id = {}", self.flow_cell_id().expect("error"))?;
+		writeln!(
+			f,
+			"flow_cell_id = {}",
+			RunInfo::handle_result(self.flow_cell_id())
+		)?;
 		writeln!(
 			f,
 			"flow_cell_product_code = {}",
-			self.flow_cell_product_code().expect("error")
+			RunInfo::handle_result(self.flow_cell_product_code())
 		)?;
-		writeln!(f, "product_name = {}", self.protocol_name().expect("error"))?;
+		writeln!(
+			f,
+			"product_name = {}",
+			RunInfo::handle_result(self.protocol_name())
+		)?;
 		writeln!(
 			f,
 			"protocol_run_id = {}",
-			self.protocol_run_id().expect("error")
+			RunInfo::handle_result(self.protocol_run_id())
 		)?;
 		writeln!(
 			f,
 			"protocol_start_time_ms = {}",
 			self.protocol_start_time_ms()
 		)?;
-		writeln!(f, "sample_id = {}", self.sample_id().expect("error"))?;
+		writeln!(
+			f,
+			"sample_id = {}",
+			RunInfo::handle_result(self.sample_id())
+		)?;
 		writeln!(f, "sample_rate = {}", self.sample_rate())?;
 		writeln!(
 			f,
 			"sequencing_kit = {}",
-			self.sequencing_kit().expect("error")
+			RunInfo::handle_result(self.sequencing_kit())
 		)?;
 		writeln!(
 			f,
 			"sequencer_position = {}",
-			self.sequencer_position().expect("error")
+			RunInfo::handle_result(self.sequencer_position())
 		)?;
 		writeln!(
 			f,
 			"sequencer_position_type = {}",
-			self.sequencer_position_type().expect("error")
+			RunInfo::handle_result(self.sequencer_position_type())
 		)?;
-		writeln!(f, "software = {}", self.software().expect("error"))?;
-		writeln!(f, "system_name = {}", self.system_name().expect("error"))?;
-		writeln!(f, "system_type = {}", self.system_type().expect("error"))
+		writeln!(f, "software = {}", RunInfo::handle_result(self.software()))?;
+		writeln!(
+			f,
+			"system_name = {}",
+			RunInfo::handle_result(self.system_name())
+		)?;
+		writeln!(
+			f,
+			"system_type = {}",
+			RunInfo::handle_result(self.system_type())
+		)
 		//write!(f, "{}\n", self.tracking_id())
 	}
 }
@@ -269,7 +296,11 @@ impl<'a> Iterator for RunInfoIter<'a>
 		let mut run_info = ptr::null_mut();
 
 		unsafe {
-			crate::pod5_ffi::pod5_get_file_run_info(self.reader.inner, self.current_row, &mut run_info);
+			crate::pod5_ffi::pod5_get_file_run_info(
+				self.reader.inner,
+				self.current_row,
+				&mut run_info,
+			);
 		}
 
 		crate::pod5_check_error!();
