@@ -19,6 +19,9 @@ cargo build # build the example
 ./target/debug/decapod_example ../third_party/pod5-file-format/test_data/multi_fast5_zip_v3.pod5 
 ```
 
+- Serialisation can be enabled with the 'serde' feature.
+- Polars DF generation can be enabled with the 'polars' feature
+
 # Features
 
 - Iterate over all reads.
