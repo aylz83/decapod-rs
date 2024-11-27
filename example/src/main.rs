@@ -13,7 +13,7 @@ fn main() -> anyhow::Result<()>
 
 	println!("{:?}", &reader.read_ids()?);
 
-	let reads = reader.reads()?;
+	let reads = reader.reads_iter()?;
 
 	for read in reads
 	{
@@ -32,6 +32,16 @@ fn main() -> anyhow::Result<()>
 	{
 		let runinfo = runinfo?;
 		println!("{}", runinfo);
+	}
+
+	let batches = reader.batch_records_iter()?;
+
+	let fields = Some(vec!["read_id", "read_number"]);
+
+	for batch in batches
+	{
+		let batch = batch?;
+		println!("{}", batch.to_df(&fields)?);
 	}
 
 	Ok(())

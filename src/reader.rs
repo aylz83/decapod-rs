@@ -4,6 +4,7 @@ use std::io::{Read as StdRead, Seek, SeekFrom};
 
 pub use crate::reads::*;
 pub use crate::read::*;
+pub use crate::readbatch::*;
 
 use crate::error::Pod5Error;
 
@@ -21,16 +22,16 @@ impl ReaderOptions
 		}
 	}
 
-	pub(crate) fn to_ffi(&self) -> crate::ffi::Pod5ReaderOptions_t
+	pub(crate) fn to_ffi(&self) -> crate::pod5_ffi::Pod5ReaderOptions_t
 	{
-		crate::ffi::Pod5ReaderOptions_t {
+		crate::pod5_ffi::Pod5ReaderOptions_t {
 			force_disable_file_mapping: self.force_disable_file_mapping,
 		}
 	}
 }
 pub struct Reader
 {
-	pub(crate) inner: *mut crate::ffi::Pod5FileReader_t,
+	pub(crate) inner: *mut crate::pod5_ffi::Pod5FileReader_t,
 
 	pub(crate) has_compression: bool,
 }
@@ -43,7 +44,7 @@ impl Reader
 	) -> crate::error::Result<Reader>
 	{
 		unsafe {
-			crate::ffi::pod5_init();
+			crate::pod5_ffi::pod5_init();
 		}
 
 		let c_string = match CString::new(filename)
@@ -52,8 +53,9 @@ impl Reader
 			Err(_) => return Err(Pod5Error::from_error_code(1, "memory string".to_string())),
 		};
 
-		let ptr =
-			unsafe { crate::ffi::pod5_open_file_options(c_string.as_ptr(), &options.to_ffi()) };
+		let ptr = unsafe {
+			crate::pod5_ffi::pod5_open_file_options(c_string.as_ptr(), &options.to_ffi())
+		};
 
 		let mut reader = Reader {
 			inner: ptr,
@@ -70,7 +72,7 @@ impl Reader
 	pub fn from_file(filename: &str) -> Result<Reader, crate::error::Pod5Error>
 	{
 		unsafe {
-			crate::ffi::pod5_init();
+			crate::pod5_ffi::pod5_init();
 		}
 
 		let c_string = match CString::new(filename)
@@ -79,7 +81,7 @@ impl Reader
 			Err(_) => return Err(Pod5Error::from_error_code(1, "memory error".to_string())),
 		};
 
-		let ptr = unsafe { crate::ffi::pod5_open_file(c_string.as_ptr()) };
+		let ptr = unsafe { crate::pod5_ffi::pod5_open_file(c_string.as_ptr()) };
 
 		let mut reader = Reader {
 			inner: ptr,
@@ -94,7 +96,7 @@ impl Reader
 	{
 		let mut read_count: usize = 0;
 		unsafe {
-			crate::ffi::pod5_get_read_count(self.inner, &mut read_count);
+			crate::pod5_ffi::pod5_get_read_count(self.inner, &mut read_count);
 		}
 
 		crate::pod5_ok!(read_count)
@@ -105,7 +107,7 @@ impl Reader
 		let read_count = self.count()?;
 		let mut read_ids = vec![[0; 16]; read_count];
 		unsafe {
-			crate::ffi::pod5_get_read_ids(self.inner, read_count, read_ids.as_mut_ptr());
+			crate::pod5_ffi::pod5_get_read_ids(self.inner, read_count, read_ids.as_mut_ptr());
 		}
 
 		let read_ids = read_ids
@@ -118,10 +120,10 @@ impl Reader
 
 	pub fn info(&self) -> Result<crate::fileinfo::FileInfo, Pod5Error>
 	{
-		let mut file_ptr: crate::ffi::FileInfo = Default::default();
+		let mut file_ptr: crate::pod5_ffi::FileInfo = Default::default();
 
 		unsafe {
-			crate::ffi::pod5_get_file_info(self.inner, &mut file_ptr);
+			crate::pod5_ffi::pod5_get_file_info(self.inner, &mut file_ptr);
 		}
 
 		crate::pod5_ok!(crate::fileinfo::FileInfo { inner: file_ptr })
@@ -131,7 +133,7 @@ impl Reader
 	{
 		let mut run_info_count = 0;
 		unsafe {
-			crate::ffi::pod5_get_file_run_info_count(self.inner, &mut run_info_count);
+			crate::pod5_ffi::pod5_get_file_run_info_count(self.inner, &mut run_info_count);
 		}
 
 		crate::pod5_ok!(crate::runinfo::RunInfoIter {
@@ -141,11 +143,11 @@ impl Reader
 		})
 	}
 
-	pub fn reads(&self) -> crate::error::Result<Reads>
+	pub fn reads_iter(&self) -> crate::error::Result<Reads>
 	{
 		let mut batch_count: usize = 0;
 		unsafe {
-			crate::ffi::pod5_get_read_batch_count(&mut batch_count, self.inner);
+			crate::pod5_ffi::pod5_get_read_batch_count(&mut batch_count, self.inner);
 		}
 
 		crate::pod5_ok!(Reads {
@@ -158,12 +160,26 @@ impl Reader
 		})
 	}
 
+	pub fn batch_records_iter(&self) -> crate::error::Result<BatchRecordIter>
+	{
+		let mut batch_count: usize = 0;
+		unsafe {
+			crate::pod5_ffi::pod5_get_read_batch_count(&mut batch_count, self.inner);
+		}
+
+		crate::pod5_ok!(BatchRecordIter {
+			reader: self,
+			rows: batch_count,
+			current_row: 0,
+		})
+	}
+
 	fn detect_signal_compression(&mut self, path: &str) -> crate::error::Result<()>
 	{
-		let mut file_data: crate::ffi::EmbeddedFileData_t = Default::default();
+		let mut file_data: crate::pod5_ffi::EmbeddedFileData_t = Default::default();
 
 		unsafe {
-			crate::ffi::pod5_get_file_signal_table_location(self.inner, &mut file_data);
+			crate::pod5_ffi::pod5_get_file_signal_table_location(self.inner, &mut file_data);
 		}
 
 		//let c_str = unsafe { CStr::from_ptr(file_data.file_name) };
@@ -219,8 +235,8 @@ impl Drop for Reader
 	fn drop(&mut self)
 	{
 		unsafe {
-			crate::ffi::pod5_close_and_free_reader(self.inner);
-			crate::ffi::pod5_terminate();
+			crate::pod5_ffi::pod5_close_and_free_reader(self.inner);
+			crate::pod5_ffi::pod5_terminate();
 		}
 	}
 }

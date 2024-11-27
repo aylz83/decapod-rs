@@ -9,7 +9,7 @@ pub struct Reads<'a>
 	pub(crate) current_batch: usize,
 	pub(crate) current_row: usize,
 
-	pub(crate) inner: *mut crate::ffi::Pod5ReadRecordBatch_t,
+	pub(crate) inner: *mut crate::pod5_ffi::Pod5ReadRecordBatch_t,
 }
 
 impl<'a> Iterator for Reads<'a>
@@ -21,7 +21,7 @@ impl<'a> Iterator for Reads<'a>
 		if self.current_row == self.batch_rows
 		{
 			unsafe {
-				crate::ffi::pod5_free_read_batch(self.inner);
+				crate::pod5_ffi::pod5_free_read_batch(self.inner);
 				self.inner = ptr::null_mut();
 			}
 		}
@@ -36,7 +36,7 @@ impl<'a> Iterator for Reads<'a>
 		if self.inner.is_null()
 		{
 			unsafe {
-				crate::ffi::pod5_get_read_batch(
+				crate::pod5_ffi::pod5_get_read_batch(
 					&mut self.inner,
 					self.reader.inner,
 					self.current_batch,
@@ -49,21 +49,21 @@ impl<'a> Iterator for Reads<'a>
 
 			let mut batch_rows: usize = 0;
 			unsafe {
-				crate::ffi::pod5_get_read_batch_row_count(&mut batch_rows, self.inner);
+				crate::pod5_ffi::pod5_get_read_batch_row_count(&mut batch_rows, self.inner);
 			}
 
 			crate::pod5_check_error!();
 			self.batch_rows = batch_rows;
 		}
 
-		let mut read_ptr: crate::ffi::ReadBatchRowInfo_t = Default::default();
+		let mut read_ptr: crate::pod5_ffi::ReadBatchRowInfo_t = Default::default();
 		let mut table_ver: u16 = 0;
 		unsafe {
-			crate::ffi::pod5_get_read_batch_row_info_data(
+			crate::pod5_ffi::pod5_get_read_batch_row_info_data(
 				self.inner,
 				self.current_row,
-				crate::ffi::READ_BATCH_ROW_INFO_VERSION as u16,
-				&mut read_ptr as *mut crate::ffi::ReadBatchRowInfo_t as *mut c_void,
+				crate::pod5_ffi::READ_BATCH_ROW_INFO_VERSION as u16,
+				&mut read_ptr as *mut crate::pod5_ffi::ReadBatchRowInfo_t as *mut c_void,
 				&mut table_ver,
 			);
 		}
@@ -77,7 +77,7 @@ impl<'a> Iterator for Reads<'a>
 			has_compression: self.reader.has_compression,
 		};
 
-		self.current_row += 2;
+		self.current_row += 1;
 
 		crate::pod5_ok!(Some, read_result)
 	}

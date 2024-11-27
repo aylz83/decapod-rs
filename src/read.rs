@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
 use std::ffi::CStr;
-use std::ptr;
-use crate::error::Pod5Error;
 
 pub use uuid;
 
@@ -11,24 +9,24 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 pub struct Read
 {
-	pub(crate) inner: crate::ffi::ReadBatchRowInfo_t,
+	pub(crate) inner: crate::pod5_ffi::ReadBatchRowInfo_t,
 	pub(crate) table_ver: u16,
 
 	pub(crate) batch_row: usize,
-	pub(crate) reader: *mut crate::ffi::Pod5FileReader_t,
-	pub(crate) batch_record: *mut crate::ffi::Pod5ReadRecordBatch_t,
+	pub(crate) reader: *mut crate::pod5_ffi::Pod5FileReader_t,
+	pub(crate) batch_record: *mut crate::pod5_ffi::Pod5ReadRecordBatch_t,
 
 	pub(crate) has_compression: bool,
 }
 
 impl Read
 {
-	pub fn signal(&self) -> Result<Vec<i16>, Pod5Error>
+	pub fn signal(&self) -> crate::error::Result<Vec<i16>>
 	{
 		let mut signal_count: usize = 0;
 		let mut signal: Vec<i16>;
 		unsafe {
-			crate::ffi::pod5_get_read_complete_sample_count(
+			crate::pod5_ffi::pod5_get_read_complete_sample_count(
 				self.reader,
 				self.batch_record,
 				self.batch_row,
@@ -37,7 +35,7 @@ impl Read
 
 			signal = vec![0; signal_count];
 
-			crate::ffi::pod5_get_read_complete_signal(
+			crate::pod5_ffi::pod5_get_read_complete_signal(
 				self.reader,
 				self.batch_record,
 				self.batch_row,
@@ -89,7 +87,7 @@ impl Read
 		let mut c_string = vec![0i8; 10];
 		let mut str_length: usize = 10;
 		unsafe {
-			crate::ffi::pod5_get_pore_type(
+			crate::pod5_ffi::pod5_get_pore_type(
 				self.batch_record,
 				self.pore_type(),
 				c_string.as_mut_ptr(),

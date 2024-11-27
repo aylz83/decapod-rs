@@ -4,7 +4,7 @@ use std::ptr;
 
 pub struct KeyValueData
 {
-	inner: crate::ffi::KeyValueData,
+	inner: crate::pod5_ffi::KeyValueData,
 }
 
 impl KeyValueData
@@ -24,7 +24,7 @@ impl KeyValueData
 
 pub struct RunInfo
 {
-	pub(crate) inner: *mut crate::ffi::RunInfoDictData_t,
+	pub(crate) inner: *mut crate::pod5_ffi::RunInfoDictData_t,
 }
 
 impl RunInfo
@@ -241,7 +241,7 @@ impl Drop for RunInfo
 	fn drop(&mut self)
 	{
 		unsafe {
-			crate::ffi::pod5_free_run_info(self.inner);
+			crate::pod5_ffi::pod5_free_run_info(self.inner);
 		}
 	}
 }
@@ -269,7 +269,7 @@ impl<'a> Iterator for RunInfoIter<'a>
 		let mut run_info = ptr::null_mut();
 
 		unsafe {
-			crate::ffi::pod5_get_file_run_info(self.reader.inner, self.current_row, &mut run_info);
+			crate::pod5_ffi::pod5_get_file_run_info(self.reader.inner, self.current_row, &mut run_info);
 		}
 
 		crate::pod5_check_error!();

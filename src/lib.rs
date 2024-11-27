@@ -2,9 +2,10 @@
 ///
 pub mod endreason;
 pub mod error;
-mod ffi;
 pub mod fileinfo;
+mod pod5_ffi;
 mod read;
+mod readbatch;
 pub mod reader;
 mod reads;
 pub mod runinfo;

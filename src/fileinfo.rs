@@ -1,6 +1,6 @@
 pub struct FileInfo
 {
-	pub(crate) inner: crate::ffi::FileInfo_t,
+	pub(crate) inner: crate::pod5_ffi::FileInfo_t,
 }
 
 impl FileInfo

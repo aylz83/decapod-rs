@@ -4,10 +4,10 @@ use thiserror::Error;
 macro_rules! pod5_check_error {
 	() => {{
 		unsafe {
-			let error_code = $crate::ffi::pod5_get_error_no();
-			if error_code != $crate::ffi::pod5_error_POD5_OK
+			let error_code = $crate::pod5_ffi::pod5_get_error_no();
+			if error_code != $crate::pod5_ffi::pod5_error_POD5_OK
 			{
-				let c_str = std::ffi::CStr::from_ptr($crate::ffi::pod5_get_error_string());
+				let c_str = std::ffi::CStr::from_ptr($crate::pod5_ffi::pod5_get_error_string());
 				return Some(Err($crate::error::Pod5Error::from_error_code(
 					error_code,
 					c_str.to_str().expect("error").to_string(),
@@ -21,8 +21,8 @@ macro_rules! pod5_check_error {
 macro_rules! pod5_some {
 	($result:expr) => {{
 		unsafe {
-			let error_code = $crate::ffi::pod5_get_error_no();
-			if error_code != $crate::ffi::pod5_error_POD5_OK
+			let error_code = $crate::pod5_ffi::pod5_get_error_no();
+			if error_code != $crate::pod5_ffi::pod5_error_POD5_OK
 			{
 				return None;
 			}
@@ -36,10 +36,10 @@ macro_rules! pod5_some {
 macro_rules! pod5_ok {
 	($result:expr) => {{
 		unsafe {
-			let error_code = $crate::ffi::pod5_get_error_no();
-			if error_code != $crate::ffi::pod5_error_POD5_OK
+			let error_code = $crate::pod5_ffi::pod5_get_error_no();
+			if error_code != $crate::pod5_ffi::pod5_error_POD5_OK
 			{
-				let c_str = std::ffi::CStr::from_ptr($crate::ffi::pod5_get_error_string());
+				let c_str = std::ffi::CStr::from_ptr($crate::pod5_ffi::pod5_get_error_string());
 				return Err($crate::error::Pod5Error::from_error_code(
 					error_code,
 					c_str.to_str().expect("error").to_string(),
@@ -50,10 +50,10 @@ macro_rules! pod5_ok {
 	}};
 	($wrapper:ident, $result:expr) => {{
 		unsafe {
-			let error_code = $crate::ffi::pod5_get_error_no();
-			if error_code != $crate::ffi::pod5_error_POD5_OK
+			let error_code = $crate::pod5_ffi::pod5_get_error_no();
+			if error_code != $crate::pod5_ffi::pod5_error_POD5_OK
 			{
-				let c_str = std::ffi::CStr::from_ptr($crate::ffi::pod5_get_error_string());
+				let c_str = std::ffi::CStr::from_ptr($crate::pod5_ffi::pod5_get_error_string());
 				return $wrapper(Err($crate::error::Pod5Error::from_error_code(
 					error_code,
 					c_str
