@@ -30,7 +30,7 @@ cargo build # build the example
 - [x] Reading of pod5, including signal.
 - [x] Reading additional (metadata) from the pod5.
 - [x] Serialisation of reads with serde.
-- [ ] Conversion of reads to something like Polars dataframes.
+- [x] Conversion of reads to Polars dataframes.
 - [ ] Writing pod5 files.
 - [ ] Support older pod5 specifications other than V3.
 - [ ] Create documentation.

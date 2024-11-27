@@ -28,7 +28,29 @@ impl BatchRecord
 		let which_fields = match fields
 		{
 			Some(fields) => fields,
-			None => &vec!["read_id"],
+			None => &vec![
+				"read_id",
+				"read_number",
+				"start_sample",
+				"median_before",
+				"channel",
+				"well",
+				"pore_type",
+				"calibration_offset",
+				"calibration_scale",
+				"end_reason",
+				"end_reason_forced",
+				"run_info",
+				"num_minknow_events",
+				"tracked_scaling_scale",
+				"tracked_scaling_shift",
+				"predicted_scaling_scale",
+				"predicted_scaling_shift",
+				"num_reads_since_mux_change",
+				"time_since_mux_change",
+				"signal_row_count",
+				"num_samples",
+			],
 		};
 
 		let mut fields_set: HashMap<&str, Vec<Box<dyn Any>>> =
@@ -73,6 +95,82 @@ impl BatchRecord
 						.get_mut(field)
 						.unwrap()
 						.push(Box::new(read_result.read_number()) as Box<dyn Any>),
+					"start_sample" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.start_sample()) as Box<dyn Any>),
+					"median_before" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.median_before()) as Box<dyn Any>),
+					"channel" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.channel() as u32) as Box<dyn Any>),
+					"well" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.well() as u32) as Box<dyn Any>),
+					"pore_type" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.pore_type() as i32) as Box<dyn Any>),
+					"calibration_offset" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.calibration_offset()) as Box<dyn Any>),
+					"calibration_scale" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.calibration_scale()) as Box<dyn Any>),
+					"end_reason" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.end_reason() as i32) as Box<dyn Any>),
+					"end_reason_forced" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.end_reason_forced() as bool) as Box<dyn Any>),
+					"run_info" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.run_info_num() as i32) as Box<dyn Any>),
+					"num_minknow_events" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.num_minknow_events()) as Box<dyn Any>),
+					"tracked_scaling_scale" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.tracked_scaling_scale()) as Box<dyn Any>),
+					"tracked_scaling_shift" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.tracked_scaling_shift()) as Box<dyn Any>),
+					"predicted_scaling_scale" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.predicted_scaling_scale()) as Box<dyn Any>),
+					"predicted_scaling_shift" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.predicted_scaling_shift()) as Box<dyn Any>),
+					"num_reads_since_mux_change" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.num_reads_since_mux_change()) as Box<dyn Any>),
+					"time_since_mux_change" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.time_since_mux_change()) as Box<dyn Any>),
+					"signal_row_count" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.signal_row_count()) as Box<dyn Any>),
+					"num_samples" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.num_samples()) as Box<dyn Any>),
 					_ => (),
 				};
 			}
@@ -94,6 +192,158 @@ impl BatchRecord
 				let values: Vec<u32> = data
 					.into_iter()
 					.map(|v| *v.downcast::<u32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "start_sample"
+			{
+				let values: Vec<u64> = data
+					.into_iter()
+					.map(|v| *v.downcast::<u64>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "median_before"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "channel"
+			{
+				let values: Vec<u32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<u32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "well"
+			{
+				let values: Vec<u32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<u32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "pore_type"
+			{
+				let values: Vec<i32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<i32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "calibration_offset"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "calibration_scale"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "end_reason"
+			{
+				let values: Vec<i32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<i32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "end_reason_forced"
+			{
+				let values: Vec<bool> = data
+					.into_iter()
+					.map(|v| *v.downcast::<bool>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "run_info"
+			{
+				let values: Vec<i32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<i32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "num_minknow_events"
+			{
+				let values: Vec<u64> = data
+					.into_iter()
+					.map(|v| *v.downcast::<u64>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "tracked_scaling_scale"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "tracked_scaling_shift"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "predicted_scaling_scale"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "predicted_scaling_shift"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "num_reads_since_mux_change"
+			{
+				let values: Vec<u32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<u32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "time_since_mux_change"
+			{
+				let values: Vec<f32> = data
+					.into_iter()
+					.map(|v| *v.downcast::<f32>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "signal_row_count"
+			{
+				let values: Vec<i64> = data
+					.into_iter()
+					.map(|v| *v.downcast::<i64>().unwrap())
+					.collect();
+				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "num_samples"
+			{
+				let values: Vec<u64> = data
+					.into_iter()
+					.map(|v| *v.downcast::<u64>().unwrap())
 					.collect();
 				series.push(Series::new(col_name.into(), values));
 			}

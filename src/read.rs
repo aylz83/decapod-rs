@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::ffi::CStr;
+use std::ptr;
 
 pub use uuid;
 
@@ -120,9 +121,24 @@ impl Read
 		self.inner.end_reason_forced == 1
 	}
 
-	pub fn run_info(&self) -> i16
+	pub fn run_info_num(&self) -> i16
 	{
 		self.inner.run_info
+	}
+
+	pub fn run_info(&self) -> crate::error::Result<crate::runinfo::RunInfo>
+	{
+		let mut run_info = ptr::null_mut();
+
+		unsafe {
+			crate::pod5_ffi::pod5_get_file_run_info(
+				self.reader,
+				self.run_info_num() as u16,
+				&mut run_info,
+			);
+		}
+
+		crate::pod5_ok!(crate::runinfo::RunInfo { inner: run_info })
 	}
 
 	pub fn num_minknow_events(&self) -> u64
@@ -194,7 +210,7 @@ impl Serialize for Read
 		state.serialize_field("calibration_scale", &self.calibration_scale())?;
 		state.serialize_field("end_reason", &self.end_reason())?;
 		state.serialize_field("end_reason_forced", &self.end_reason_forced())?;
-		state.serialize_field("run_info", &self.run_info())?;
+		state.serialize_field("run_info", &self.run_info_num())?;
 		state.serialize_field("num_minknow_events", &self.num_minknow_events())?;
 		state.serialize_field("tracked_scaling_scale", &self.tracked_scaling_scale())?;
 		state.serialize_field("tracked_scaling_shift", &self.tracked_scaling_shift())?;

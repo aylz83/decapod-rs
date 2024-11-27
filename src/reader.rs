@@ -8,6 +8,9 @@ pub use crate::readbatch::*;
 
 use crate::error::Pod5Error;
 
+#[cfg(feature = "polars")]
+use polars::prelude::*;
+
 pub struct ReaderOptions
 {
 	force_disable_file_mapping: i8,
@@ -159,6 +162,22 @@ impl Reader
 			inner: ptr::null_mut(),
 		})
 	}
+
+	//#[cfg(feature = "polars")]
+	//pub fn to_df(&self, fields: &Option<Vec<&str>>) -> crate::error::Result<DataFrame>
+	//{
+	//	Ok(self
+	//		.batch_records_iter()?
+	//		.map(|result| result.expect("REASON").to_df(&fields).expect("REASON"))
+	//		.reduce(|acc_df, next_df| {
+	//			acc_df
+	//				.clone()
+	//				.vstack_mut(&next_df)
+	//				.map(|_| acc_df)
+	//				.expect("REASON") // Combine vertically
+	//		})
+	//		.unwrap())
+	//}
 
 	pub fn batch_records_iter(&self) -> crate::error::Result<BatchRecordIter>
 	{

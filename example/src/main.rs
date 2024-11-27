@@ -36,12 +36,12 @@ fn main() -> anyhow::Result<()>
 
 	let batches = reader.batch_records_iter()?;
 
-	let fields = Some(vec!["read_id", "read_number"]);
+	let fields = Some(vec!["read_id", "run_info"]);
 
 	for batch in batches
 	{
 		let batch = batch?;
-		println!("{}", batch.to_df(&fields)?);
+		println!("{}", batch.to_df(&None)?);
 	}
 
 	Ok(())
