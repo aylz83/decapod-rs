@@ -2,7 +2,7 @@
 name = "decapod"
 version = "0.1.0"
 edition = "2021"
-licence = "MIT"
+license = "MIT"
 description = "rust bindings for the pod5-file-format library"
 readme = "README.md"
 keywords = ["nanopore", "sequencing", "bioinformatics"]
