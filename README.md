@@ -5,7 +5,8 @@ Rust bindings for the pod5 library
 
 decapod-rs aims to provide Rust bindings for the ![pod5-file-format](https://github.com/nanoporetech/pod5-file-format) library in a Rust idiomatic way.
 
-[!NOTE] It is work in progress and currently only supports reading pod5 files, but providing bindings for writing pod5 files is planned.
+> [!NOTE]
+> It is work in progress and currently only supports reading pod5 files, but providing bindings for writing pod5 files is planned.
 
 # Building
 
