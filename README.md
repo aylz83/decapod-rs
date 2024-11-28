@@ -30,6 +30,8 @@ cargo build # build the example
 - Extract run info.
 - Serialise reads with serde (enabled with the 'serde' feature).
 - Convert batch records of reads to Polars dataframes (enabled with the 'polars' feature).
+- Supports reading of multiple pod5 files.
+- Reading directory of pod5 files (enabled with the 'recursive' feature).
 
 # Planned features
 

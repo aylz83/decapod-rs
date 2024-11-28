@@ -9,11 +9,11 @@ fn main() -> anyhow::Result<()>
 {
 	let args: Vec<String> = env::args().collect();
 
-	let reader = reader::Reader::from_file(args[1].as_str())?;
+	let reader = reader::Reader::from_path(args[1].as_str(), None)?;
 
 	println!("{:?}", &reader.read_ids()?);
 
-	let reads = reader.reads_iter()?;
+	let reads = reader.reads_iter();
 
 	for read in reads
 	{
@@ -26,7 +26,7 @@ fn main() -> anyhow::Result<()>
 		println!("pore type = {}", read.pore_type_string()?);
 	}
 
-	let runinfo_iter = reader.run_info_iter()?;
+	let runinfo_iter = reader.run_info_iter();
 
 	for runinfo in runinfo_iter
 	{
@@ -34,7 +34,7 @@ fn main() -> anyhow::Result<()>
 		println!("{}", runinfo);
 	}
 
-	let batches = reader.batch_records_iter()?;
+	let batches = reader.batch_records_iter();
 
 	let fields = Some(vec!["read_id", "run_info"]);
 

@@ -126,7 +126,7 @@ impl BatchRecord
 					"end_reason" => fields_set
 						.get_mut(field)
 						.unwrap()
-						.push(Box::new(read_result.end_reason() as i32) as Box<dyn Any>),
+						.push(Box::new(read_result.end_reason().to_string()) as Box<dyn Any>),
 					"end_reason_forced" => fields_set
 						.get_mut(field)
 						.unwrap()
@@ -253,9 +253,9 @@ impl BatchRecord
 			}
 			else if col_name == "end_reason"
 			{
-				let values: Vec<i32> = data
+				let values: Vec<String> = data
 					.into_iter()
-					.map(|v| *v.downcast::<i32>().unwrap())
+					.map(|v| *v.downcast::<String>().unwrap())
 					.collect();
 				series.push(Series::new(col_name.into(), values));
 			}
@@ -374,9 +374,10 @@ impl Drop for BatchRecord
 pub struct BatchRecordIter<'a>
 {
 	pub(crate) rows: usize,
-	pub(crate) reader: &'a crate::reader::Reader,
+	pub(crate) reader: std::slice::Iter<'a, crate::reader::InternalReader>,
 
 	pub(crate) current_row: usize,
+	pub(crate) inner_reader: Option<&'a crate::reader::InternalReader>,
 }
 
 impl<'a> Iterator for BatchRecordIter<'a>
@@ -388,14 +389,30 @@ impl<'a> Iterator for BatchRecordIter<'a>
 		if self.rows == self.current_row
 		{
 			self.current_row = 0;
-			return None;
+			self.rows = 0;
+		}
+
+		if self.rows == 0
+		{
+			self.inner_reader = match self.reader.next()
+			{
+				Some(reader) => Some(reader),
+				None => return None,
+			};
+
+			unsafe {
+				crate::pod5_ffi::pod5_get_read_batch_count(
+					&mut self.rows,
+					self.inner_reader.unwrap().inner,
+				);
+			}
 		}
 
 		let mut batch_ptr = ptr::null_mut();
 		unsafe {
 			crate::pod5_ffi::pod5_get_read_batch(
 				&mut batch_ptr,
-				self.reader.inner,
+				self.inner_reader.unwrap().inner,
 				self.current_row,
 			);
 		}
@@ -404,7 +421,7 @@ impl<'a> Iterator for BatchRecordIter<'a>
 
 		let read_result = BatchRecord {
 			inner: batch_ptr,
-			reader: self.reader.inner,
+			reader: self.inner_reader.unwrap().inner,
 		};
 
 		self.current_row += 1;

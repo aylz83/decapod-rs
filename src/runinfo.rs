@@ -276,9 +276,10 @@ impl Drop for RunInfo
 pub struct RunInfoIter<'a>
 {
 	pub(crate) rows: u16,
-	pub(crate) reader: &'a crate::reader::Reader,
+	pub(crate) reader: std::slice::Iter<'a, crate::reader::InternalReader>,
 
 	pub(crate) current_row: u16,
+	pub(crate) current_reader: Option<&'a crate::reader::InternalReader>,
 }
 
 impl<'a> Iterator for RunInfoIter<'a>
@@ -290,20 +291,34 @@ impl<'a> Iterator for RunInfoIter<'a>
 		if self.current_row == self.rows
 		{
 			self.current_row = 0;
-			return None;
+		}
+
+		if self.current_row == 0
+		{
+			self.current_reader = match self.reader.next()
+			{
+				Some(reader) => Some(reader),
+				None => return None,
+			};
+
+			unsafe {
+				crate::pod5_ffi::pod5_get_file_run_info_count(
+					self.current_reader.unwrap().inner,
+					&mut self.rows,
+				);
+			}
 		}
 
 		let mut run_info = ptr::null_mut();
 
 		unsafe {
 			crate::pod5_ffi::pod5_get_file_run_info(
-				self.reader.inner,
+				self.current_reader.unwrap().inner,
 				self.current_row,
 				&mut run_info,
 			);
 		}
 
-		crate::pod5_check_error!();
 		self.current_row += 1;
 
 		crate::pod5_ok!(Some, RunInfo { inner: run_info })

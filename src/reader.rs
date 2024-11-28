@@ -11,6 +11,10 @@ use crate::error::Pod5Error;
 #[cfg(feature = "polars")]
 use polars::prelude::*;
 
+#[cfg(feature = "recursive")]
+use ignore::{WalkBuilder, types::TypesBuilder};
+use std::path::Path;
+
 pub struct ReaderOptions
 {
 	force_disable_file_mapping: i8,
@@ -32,69 +36,16 @@ impl ReaderOptions
 		}
 	}
 }
-pub struct Reader
+
+pub(crate) struct InternalReader
 {
 	pub(crate) inner: *mut crate::pod5_ffi::Pod5FileReader_t,
 
 	pub(crate) has_compression: bool,
 }
 
-impl Reader
+impl InternalReader
 {
-	pub fn from_file_with_options<'a>(
-		filename: &'a str,
-		options: &'a ReaderOptions,
-	) -> crate::error::Result<Reader>
-	{
-		unsafe {
-			crate::pod5_ffi::pod5_init();
-		}
-
-		let c_string = match CString::new(filename)
-		{
-			Ok(result) => result,
-			Err(_) => return Err(Pod5Error::from_error_code(1, "memory string".to_string())),
-		};
-
-		let ptr = unsafe {
-			crate::pod5_ffi::pod5_open_file_options(c_string.as_ptr(), &options.to_ffi())
-		};
-
-		let mut reader = Reader {
-			inner: ptr,
-			has_compression: false,
-		};
-		reader.detect_signal_compression(filename)?;
-
-		crate::pod5_ok!(reader)
-	}
-
-	///
-	/// Opens a POD5
-	///
-	pub fn from_file(filename: &str) -> Result<Reader, crate::error::Pod5Error>
-	{
-		unsafe {
-			crate::pod5_ffi::pod5_init();
-		}
-
-		let c_string = match CString::new(filename)
-		{
-			Ok(result) => result,
-			Err(_) => return Err(Pod5Error::from_error_code(1, "memory error".to_string())),
-		};
-
-		let ptr = unsafe { crate::pod5_ffi::pod5_open_file(c_string.as_ptr()) };
-
-		let mut reader = Reader {
-			inner: ptr,
-			has_compression: false,
-		};
-		reader.detect_signal_compression(filename)?;
-
-		crate::pod5_ok!(reader)
-	}
-
 	pub fn count(&self) -> Result<usize, Pod5Error>
 	{
 		let mut read_count: usize = 0;
@@ -121,79 +72,7 @@ impl Reader
 		crate::pod5_ok!(read_ids)
 	}
 
-	pub fn info(&self) -> Result<crate::fileinfo::FileInfo, Pod5Error>
-	{
-		let mut file_ptr: crate::pod5_ffi::FileInfo = Default::default();
-
-		unsafe {
-			crate::pod5_ffi::pod5_get_file_info(self.inner, &mut file_ptr);
-		}
-
-		crate::pod5_ok!(crate::fileinfo::FileInfo { inner: file_ptr })
-	}
-
-	pub fn run_info_iter(&self) -> crate::error::Result<crate::runinfo::RunInfoIter>
-	{
-		let mut run_info_count = 0;
-		unsafe {
-			crate::pod5_ffi::pod5_get_file_run_info_count(self.inner, &mut run_info_count);
-		}
-
-		crate::pod5_ok!(crate::runinfo::RunInfoIter {
-			rows: run_info_count,
-			reader: self,
-			current_row: 0
-		})
-	}
-
-	pub fn reads_iter(&self) -> crate::error::Result<Reads>
-	{
-		let mut batch_count: usize = 0;
-		unsafe {
-			crate::pod5_ffi::pod5_get_read_batch_count(&mut batch_count, self.inner);
-		}
-
-		crate::pod5_ok!(Reads {
-			reader: self,
-			batch_count,
-			batch_rows: 0,
-			current_batch: 0,
-			current_row: 0,
-			inner: ptr::null_mut(),
-		})
-	}
-
-	//#[cfg(feature = "polars")]
-	//pub fn to_df(&self, fields: &Option<Vec<&str>>) -> crate::error::Result<DataFrame>
-	//{
-	//	Ok(self
-	//		.batch_records_iter()?
-	//		.map(|result| result.expect("REASON").to_df(&fields).expect("REASON"))
-	//		.reduce(|acc_df, next_df| {
-	//			acc_df
-	//				.clone()
-	//				.vstack_mut(&next_df)
-	//				.map(|_| acc_df)
-	//				.expect("REASON") // Combine vertically
-	//		})
-	//		.unwrap())
-	//}
-
-	pub fn batch_records_iter(&self) -> crate::error::Result<BatchRecordIter>
-	{
-		let mut batch_count: usize = 0;
-		unsafe {
-			crate::pod5_ffi::pod5_get_read_batch_count(&mut batch_count, self.inner);
-		}
-
-		crate::pod5_ok!(BatchRecordIter {
-			reader: self,
-			rows: batch_count,
-			current_row: 0,
-		})
-	}
-
-	fn detect_signal_compression(&mut self, path: &str) -> crate::error::Result<()>
+	fn detect_signal_compression<P: AsRef<Path>>(&mut self, path: P) -> crate::error::Result<()>
 	{
 		let mut file_data: crate::pod5_ffi::EmbeddedFileData_t = Default::default();
 
@@ -243,13 +122,9 @@ impl Reader
 
 		Ok(())
 	}
-
-	//fn read(&self, read: &mut Read) -> bool
-	//{
-	//}
 }
 
-impl Drop for Reader
+impl Drop for InternalReader
 {
 	fn drop(&mut self)
 	{
@@ -258,4 +133,231 @@ impl Drop for Reader
 			crate::pod5_ffi::pod5_terminate();
 		}
 	}
+}
+
+pub struct Reader
+{
+	pub(crate) inner: Vec<InternalReader>,
+}
+
+impl Reader
+{
+	/// Opens a pod5 file for reading
+	pub fn from_path<P: AsRef<Path>>(
+		path: P,
+		options: Option<ReaderOptions>,
+	) -> crate::error::Result<Reader>
+	{
+		unsafe {
+			crate::pod5_ffi::pod5_init();
+		}
+
+		let mut readers = Vec::new();
+		if path.as_ref().is_file()
+		{
+			readers.push(Self::_reader_from_file(path, &options)?);
+		}
+		else
+		{
+			#[cfg(feature = "recursive")]
+			readers.extend(Self::_readers_from_dir(path, &options)?);
+		}
+
+		let reader = Reader { inner: readers };
+
+		crate::pod5_ok!(reader)
+	}
+
+	pub fn from_vec<P>(
+		paths: Vec<P>,
+		options: Option<ReaderOptions>,
+	) -> crate::error::Result<Reader>
+	where
+		P: AsRef<Path>,
+	{
+		Self::from_iter(paths.iter(), options)
+	}
+
+	pub fn from_iter<P, I>(iter: I, options: Option<ReaderOptions>) -> crate::error::Result<Reader>
+	where
+		I: IntoIterator<Item = P>,
+		P: AsRef<Path>,
+	{
+		unsafe {
+			crate::pod5_ffi::pod5_init();
+		}
+
+		let mut readers = Vec::new();
+		for path in iter
+		{
+			if path.as_ref().is_file()
+			{
+				readers.push(Self::_reader_from_file(path, &options)?);
+			}
+			else
+			{
+				#[cfg(feature = "recursive")]
+				readers.extend(Self::_readers_from_dir(path, &options)?);
+			}
+		}
+
+		let reader = Reader { inner: readers };
+
+		crate::pod5_ok!(reader)
+	}
+
+	fn _reader_from_file<P: AsRef<Path>>(
+		path: P,
+		options: &Option<ReaderOptions>,
+	) -> crate::error::Result<InternalReader>
+	{
+		let c_string = path
+			.as_ref()
+			.to_str()
+			.ok_or_else(|| Pod5Error::MemoryError("memory error".to_string()))
+			.and_then(|s| {
+				CString::new(s).map_err(|_| Pod5Error::MemoryError("memory error".to_string()))
+			});
+
+		let ptr = match options
+		{
+			Some(options) =>
+			unsafe {
+				crate::pod5_ffi::pod5_open_file_options(c_string?.as_ptr(), &options.to_ffi())
+			},
+			None =>
+			unsafe { crate::pod5_ffi::pod5_open_file(c_string?.as_ptr()) },
+		};
+
+		let mut reader = InternalReader {
+			inner: ptr,
+			has_compression: false,
+		};
+		reader.detect_signal_compression(path)?;
+
+		crate::pod5_ok!(reader)
+	}
+
+	#[cfg(feature = "recursive")]
+	fn _readers_from_dir<P: AsRef<Path>>(
+		path: P,
+		options: &Option<ReaderOptions>,
+	) -> crate::error::Result<Vec<InternalReader>>
+	{
+		let mut types_builder = TypesBuilder::new();
+		types_builder.add("pod5", "*.pod5").expect("REASON");
+		types_builder.select("pod5");
+		let matcher = types_builder.build().unwrap();
+
+		let walker = WalkBuilder::new(path).types(matcher).build();
+
+		let mut results = Vec::new();
+
+		for result in walker
+		{
+			match result
+			{
+				Ok(entry) =>
+				{
+					let path = entry.path();
+					if path.is_file()
+					{
+						let reader = Self::_reader_from_file(path, &options)?;
+						results.push(reader);
+					}
+				}
+				Err(_) =>
+				{}
+			}
+		}
+
+		Ok(results)
+	}
+
+	pub fn count(&self) -> crate::error::Result<usize>
+	{
+		self.inner.iter().try_fold(0usize, |acc, item| {
+			// `try_fold` will propagate errors in the `Result` from `item.count()`
+			item.count().map(|count| acc + count)
+		})
+	}
+
+	pub fn read_ids(&self) -> Result<Vec<uuid::Uuid>, Pod5Error>
+	{
+		self.inner.iter().try_fold(Vec::new(), |mut acc, item| {
+			item.read_ids().map(|ids| {
+				acc.extend(ids); // Push the count (String) to the accumulator
+				acc
+			})
+		})
+	}
+
+	pub fn info(&self) -> Vec<crate::error::Result<crate::fileinfo::FileInfo>>
+	{
+		self.inner
+			.iter()
+			.map(|reader| {
+				let mut file_ptr: crate::pod5_ffi::FileInfo = Default::default();
+
+				unsafe {
+					crate::pod5_ffi::pod5_get_file_info(reader.inner, &mut file_ptr);
+				}
+
+				crate::pod5_ok!(crate::fileinfo::FileInfo { inner: file_ptr })
+			})
+			.collect()
+	}
+
+	pub fn run_info_iter(&self) -> crate::runinfo::RunInfoIter
+	{
+		crate::runinfo::RunInfoIter {
+			rows: 0,
+			reader: self.inner.iter(),
+			current_row: 0,
+			current_reader: None,
+		}
+	}
+
+	pub fn reads_iter(&self) -> Reads
+	{
+		Reads {
+			reader: self.inner.iter(),
+			batch_count: 0,
+			batch_rows: 0,
+			current_batch: 0,
+			current_row: 0,
+			inner: ptr::null_mut(),
+			inner_reader: None,
+		}
+	}
+
+	//#[cfg(feature = "polars")]
+	//pub fn to_df(&self, fields: &Option<Vec<&str>>) -> crate::error::Result<DataFrame>
+	//{
+	//	Ok(self
+	//		.batch_records_iter()?
+	//		.map(|result| result.expect("REASON").to_df(&fields).expect("REASON"))
+	//		.reduce(|acc_df, next_df| {
+	//			acc_df
+	//				.clone()
+	//				.vstack_mut(&next_df)
+	//				.map(|_| acc_df)
+	//				.expect("REASON") // Combine vertically
+	//		})
+	//		.unwrap())
+	//}
+
+	pub fn batch_records_iter(&self) -> BatchRecordIter
+	{
+		BatchRecordIter {
+			reader: self.inner.iter(),
+			rows: 0,
+			current_row: 0,
+			inner_reader: None,
+		}
+	}
+
+	//fn read(&self, read: &mut Read) -> bool
+	//{
+	//}
 }

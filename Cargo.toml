@@ -17,6 +17,7 @@ pkg-config = "0.3.31"
 
 [dependencies]
 arrow = { version = "53.3.0", default-features = false, features = ["arrow-ipc", "ipc"] }
+ignore = { version = "0.4.23", optional = true }
 polars = { version = "0.43", default-features = false, optional = true, features = ["fmt"] }
 serde = { version = "1.0.215", optional = true, features = ["derive"] }
 thiserror = "2.0.3"
@@ -25,3 +26,4 @@ uuid = "1.11.0"
 [features]
 serde = ["dep:serde", "uuid/serde"]
 polars = ["dep:polars"]
+recursive = ["dep:ignore"]

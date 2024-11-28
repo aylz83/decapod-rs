@@ -1,5 +1,8 @@
+use std::fmt;
+
 #[repr(u32)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[derive(Debug)]
 pub enum EndReason
 {
 	Unknown = crate::pod5_ffi::pod5_end_reason_POD5_END_REASON_UNKNOWN,
@@ -30,5 +33,13 @@ impl EndReason
 			8 => EndReason::AnalysisConfigChange,
 			_ => EndReason::Unknown,
 		}
+	}
+}
+
+impl fmt::Display for EndReason
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(f, "{:?}", self)
 	}
 }
