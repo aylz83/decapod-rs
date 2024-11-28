@@ -28,6 +28,9 @@ impl<'a> Iterator for Reads<'a>
 			}
 
 			self.batch_count = 0;
+			self.current_row = 0;
+			self.batch_rows = 0;
+			self.current_batch = 0;
 		}
 
 		// Process the next batch if we're on the first row of a batch
