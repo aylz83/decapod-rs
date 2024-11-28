@@ -2,7 +2,7 @@ use std::ptr;
 use std::ffi::c_void;
 use std::any::Any;
 
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 #[cfg(feature = "polars")]
 use polars::prelude::*;
@@ -53,8 +53,8 @@ impl BatchRecord
 			],
 		};
 
-		let mut fields_set: HashMap<&str, Vec<Box<dyn Any>>> =
-			HashMap::with_capacity(which_fields.len());
+		let mut fields_set: IndexMap<&str, Vec<Box<dyn Any>>> =
+			IndexMap::with_capacity(which_fields.len());
 		for field in which_fields
 		{
 			fields_set.insert(*field, Vec::with_capacity(batch_rows) as Vec<Box<dyn Any>>);
