@@ -3,17 +3,25 @@ use decapod::reader;
 use serde_json;
 use anyhow;
 
+use uuid::uuid;
+
 use std::env;
 
 fn main() -> anyhow::Result<()>
 {
 	let args: Vec<String> = env::args().collect();
 
+	let mut read_ids = Vec::new();
+	read_ids.push(uuid!("002fde30-9e23-4125-9eae-d112c18a81a7"));
+	read_ids.push(uuid!("006d1319-2877-4b34-85df-34de7250a47b"));
+
+	let read_ids = Some(read_ids);
+
 	let reader = reader::Reader::from_path(args[1].as_str(), None)?;
 
 	println!("{:?}", &reader.read_ids()?);
 
-	let reads = reader.reads_iter();
+	let reads = reader.reads_iter(None);
 
 	for read in reads
 	{
@@ -34,7 +42,7 @@ fn main() -> anyhow::Result<()>
 		println!("{}", runinfo);
 	}
 
-	let batches = reader.batch_records_iter();
+	let batches = reader.batch_records_iter(None);
 
 	let fields = Some(vec!["read_id", "run_info"]);
 

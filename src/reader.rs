@@ -40,7 +40,6 @@ impl ReaderOptions
 pub(crate) struct InternalReader
 {
 	pub(crate) inner: *mut crate::pod5_ffi::Pod5FileReader_t,
-
 	pub(crate) has_compression: bool,
 }
 
@@ -121,6 +120,64 @@ impl InternalReader
 		};
 
 		Ok(())
+	}
+
+	pub(crate) fn get_fetch_path(
+		&self,
+		fetch: &Option<Vec<uuid::Uuid>>,
+		rows: &mut usize,
+	) -> Option<Vec<(usize, Vec<u32>)>>
+	{
+		match fetch
+		{
+			Some(fetch) =>
+			{
+				let read_ids: Vec<[u8; 16]> = fetch.iter().map(|uuid| *uuid.as_bytes()).collect();
+
+				let mut batch_count: usize = 0;
+				unsafe {
+					crate::pod5_ffi::pod5_get_read_batch_count(&mut batch_count, self.inner);
+				}
+
+				let mut rows_per_batch: Vec<u32> = vec![0u32; batch_count];
+				let mut batch_rows: Vec<u32> = vec![0u32; read_ids.len()];
+				let mut count: usize = 0;
+
+				unsafe {
+					crate::pod5_ffi::pod5_plan_traversal(
+						self.inner,
+						read_ids.as_ptr() as *const u8,
+						read_ids.len(),
+						rows_per_batch.as_mut_ptr(),
+						batch_rows.as_mut_ptr(),
+						&mut count,
+					);
+				}
+
+				if count == 0
+				{
+					return None;
+				}
+
+				let mut offset: usize = 0;
+
+				let batch_row_map = rows_per_batch
+					.into_iter()
+					.enumerate() // Include indices for keys in the result
+					.map(|(index, size)| {
+						// Capture the rows for this group and update the offset
+						let rows = batch_rows[offset..offset + size as usize].to_vec();
+						offset += size as usize;
+						(index, rows)
+					})
+					.collect::<Vec<(usize, Vec<u32>)>>();
+
+				*rows = batch_row_map.len();
+
+				Some(batch_row_map)
+			}
+			None => None,
+		}
 	}
 }
 
@@ -282,7 +339,7 @@ impl Reader
 		})
 	}
 
-	pub fn read_ids(&self) -> Result<Vec<uuid::Uuid>, Pod5Error>
+	pub fn read_ids(&self) -> crate::error::Result<Vec<uuid::Uuid>>
 	{
 		self.inner.iter().try_fold(Vec::new(), |mut acc, item| {
 			item.read_ids().map(|ids| {
@@ -318,7 +375,7 @@ impl Reader
 		}
 	}
 
-	pub fn reads_iter(&self) -> Reads
+	pub fn reads_iter(&self, fetch: Option<Vec<uuid::Uuid>>) -> Reads
 	{
 		Reads {
 			reader: self.inner.iter(),
@@ -328,6 +385,8 @@ impl Reader
 			current_row: 0,
 			inner: ptr::null_mut(),
 			inner_reader: None,
+			fetch,
+			fetch_path: None,
 		}
 	}
 
@@ -347,13 +406,15 @@ impl Reader
 	//		.unwrap())
 	//}
 
-	pub fn batch_records_iter(&self) -> BatchRecordIter
+	pub fn batch_records_iter(&self, fetch: Option<Vec<uuid::Uuid>>) -> BatchRecordIter
 	{
 		BatchRecordIter {
 			reader: self.inner.iter(),
 			rows: 0,
 			current_row: 0,
 			inner_reader: None,
+			fetch,
+			fetch_path: None,
 		}
 	}
 

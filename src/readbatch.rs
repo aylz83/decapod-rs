@@ -11,6 +11,7 @@ pub struct BatchRecord
 {
 	pub(crate) inner: *mut crate::pod5_ffi::Pod5ReadRecordBatch_t,
 	pub(crate) reader: *mut crate::pod5_ffi::Pod5FileReader_t,
+	pub(crate) fetch_path: Option<Vec<u32>>,
 }
 
 impl BatchRecord
@@ -18,13 +19,6 @@ impl BatchRecord
 	#[cfg(feature = "polars")]
 	pub fn to_df(&self, fields: &Option<Vec<&str>>) -> crate::error::Result<DataFrame>
 	{
-		use crate::error::Pod5Error;
-
-		let mut batch_rows: usize = 0;
-		unsafe {
-			crate::pod5_ffi::pod5_get_read_batch_row_count(&mut batch_rows, self.inner);
-		}
-
 		let which_fields = match fields
 		{
 			Some(fields) => fields,
@@ -55,19 +49,40 @@ impl BatchRecord
 
 		let mut fields_set: IndexMap<&str, Vec<Box<dyn Any>>> =
 			IndexMap::with_capacity(which_fields.len());
+
+		let mut batch_rows: usize = 0;
+		let path_to_take = match &self.fetch_path
+		{
+			Some(path) =>
+			{
+				batch_rows = path.len();
+				path
+			}
+			None =>
+			{
+				unsafe {
+					crate::pod5_ffi::pod5_get_read_batch_row_count(&mut batch_rows, self.inner);
+				}
+
+				&(0..batch_rows as u32).collect::<Vec<u32>>()
+			}
+		};
+
 		for field in which_fields
 		{
 			fields_set.insert(*field, Vec::with_capacity(batch_rows) as Vec<Box<dyn Any>>);
 		}
 
-		for current_row in 0..batch_rows
+		for current_row in path_to_take
 		{
+			let current_row = *current_row as usize;
+
 			let mut read_ptr: crate::pod5_ffi::ReadBatchRowInfo_t = Default::default();
 			let mut table_ver: u16 = 0;
 			unsafe {
 				crate::pod5_ffi::pod5_get_read_batch_row_info_data(
 					self.inner,
-					current_row,
+					current_row as usize,
 					crate::pod5_ffi::READ_BATCH_ROW_INFO_VERSION as u16,
 					&mut read_ptr as *mut crate::pod5_ffi::ReadBatchRowInfo_t as *mut c_void,
 					&mut table_ver,
@@ -91,6 +106,10 @@ impl BatchRecord
 						.get_mut(field)
 						.unwrap()
 						.push(Box::new(read_result.uuid().to_string()) as Box<dyn Any>),
+					"signal" => fields_set
+						.get_mut(field)
+						.unwrap()
+						.push(Box::new(read_result.signal().unwrap_or(Vec::new())) as Box<dyn Any>),
 					"read_number" => fields_set
 						.get_mut(field)
 						.unwrap()
@@ -186,6 +205,22 @@ impl BatchRecord
 					.map(|v| *v.downcast::<String>().unwrap())
 					.collect();
 				series.push(Series::new(col_name.into(), values));
+			}
+			else if col_name == "signal"
+			{
+				/*let values: Vec<Vec<i32>> = data
+					.into_iter()
+					.map(|v| *v.downcast::<Vec<i32>>().unwrap())
+					.collect();
+				let slices: Vec<&[i32]> = values.iter().map(|v| v.as_slice()).collect();
+
+				// Create ListChunked directly
+				let list_chunked = ListChunked::new("", &slices);
+				let list_chunked = ListChunked::from_vec(
+					col_name.into(),
+					slices, // Convert Vec<Vec<i32>> to ListChunked
+				);
+				series.push(Series::new(col_name.into(), list_chunked));*/
 			}
 			else if col_name == "read_number"
 			{
@@ -354,7 +389,7 @@ impl BatchRecord
 		let record_df = match record_df
 		{
 			Ok(df) => df,
-			Err(_) => return Err(Pod5Error::UnknownError("".to_string())),
+			Err(_) => return Err(crate::error::Pod5Error::UnknownError("".to_string())),
 		};
 
 		crate::pod5_ok!(record_df)
@@ -378,19 +413,24 @@ pub struct BatchRecordIter<'a>
 
 	pub(crate) current_row: usize,
 	pub(crate) inner_reader: Option<&'a crate::reader::InternalReader>,
+	pub(crate) fetch: Option<Vec<uuid::Uuid>>,
+	pub(crate) fetch_path: Option<Vec<(usize, Vec<u32>)>>,
 }
 
-impl<'a> Iterator for BatchRecordIter<'a>
+impl<'a> BatchRecordIter<'a>
 {
-	type Item = crate::error::Result<BatchRecord>;
-
-	fn next(&mut self) -> Option<Self::Item>
+	fn reset_rows(&mut self)
 	{
 		if self.rows == self.current_row
 		{
 			self.current_row = 0;
 			self.rows = 0;
 		}
+	}
+
+	fn next_batch(&mut self) -> Option<crate::error::Result<BatchRecord>>
+	{
+		self.reset_rows();
 
 		if self.rows == 0
 		{
@@ -422,10 +462,72 @@ impl<'a> Iterator for BatchRecordIter<'a>
 		let read_result = BatchRecord {
 			inner: batch_ptr,
 			reader: self.inner_reader.unwrap().inner,
+			fetch_path: None,
 		};
 
 		self.current_row += 1;
 
 		crate::pod5_ok!(Some, read_result)
+	}
+
+	fn next_fetch_batch(&mut self) -> Option<crate::error::Result<BatchRecord>>
+	{
+		self.reset_rows();
+
+		if self.rows == 0
+		{
+			self.inner_reader = match self.reader.next()
+			{
+				Some(reader) => Some(reader),
+				None => return None,
+			};
+
+			self.fetch_path = self
+				.inner_reader
+				.as_ref()
+				.unwrap()
+				.get_fetch_path(&self.fetch, &mut self.rows);
+		}
+
+		let Some(fetch_path) = &self.fetch_path
+		else
+		{
+			return None;
+		};
+
+		let mut batch_ptr = ptr::null_mut();
+		unsafe {
+			crate::pod5_ffi::pod5_get_read_batch(
+				&mut batch_ptr,
+				self.inner_reader.unwrap().inner,
+				fetch_path[self.current_row].0,
+			);
+		}
+
+		crate::pod5_check_error!();
+
+		let read_result = BatchRecord {
+			inner: batch_ptr,
+			reader: self.inner_reader.unwrap().inner,
+			fetch_path: Some(fetch_path[self.current_row].1.clone()),
+		};
+
+		self.current_row += 1;
+
+		crate::pod5_ok!(Some, read_result)
+	}
+}
+
+impl<'a> Iterator for BatchRecordIter<'a>
+{
+	type Item = crate::error::Result<BatchRecord>;
+
+	fn next(&mut self) -> Option<Self::Item>
+	{
+		match self.fetch
+		{
+			Some(_) => self.next_fetch_batch(),
+			None => self.next_batch(),
+		}
 	}
 }
