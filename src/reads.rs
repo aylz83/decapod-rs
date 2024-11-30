@@ -1,5 +1,7 @@
 use std::{ffi::c_void, ptr};
 
+/// Iterator for obtaining each read.
+/// See [`crate::reader::Reader::reads_iter`] for documentation.
 pub struct Reads<'a>
 {
 	pub(crate) reader: std::slice::Iter<'a, crate::reader::InternalReader>,

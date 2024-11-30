@@ -8,6 +8,7 @@ pub use uuid;
 #[cfg(feature = "serde")]
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
+/// Calibration and calibration extra data from the associated read.
 pub struct Calibration<'a>
 {
 	pub(crate) inner: &'a Read,
@@ -18,16 +19,19 @@ pub struct Calibration<'a>
 
 impl<'a> Calibration<'a>
 {
+	/// Calibration offset
 	pub fn offset(&self) -> f32
 	{
 		self.inner.inner.calibration_offset
 	}
 
+	/// Calibration scale
 	pub fn scale(&self) -> f32
 	{
 		self.inner.inner.calibration_scale
 	}
 
+	/// Obtain the digitisation field from the extra calibration data within the pod5.
 	pub fn digitisation(&mut self) -> u16
 	{
 		match self.digitisation
@@ -56,6 +60,7 @@ impl<'a> Calibration<'a>
 		}
 	}
 
+	/// obtain the range field from the extra calibration data within the pod5.
 	pub fn range(&mut self) -> f32
 	{
 		match self.range
@@ -84,6 +89,8 @@ impl<'a> Calibration<'a>
 		}
 	}
 }
+
+/// pod5 read information.
 pub struct Read
 {
 	pub(crate) inner: crate::pod5_ffi::ReadBatchRowInfo_t,
@@ -98,6 +105,7 @@ pub struct Read
 
 impl Read
 {
+	/// The uncompressed signal for the associated read.
 	pub fn signal(&self) -> crate::error::Result<Vec<i16>>
 	{
 		let mut signal_count: usize = 0;
@@ -124,6 +132,7 @@ impl Read
 		crate::pod5_ok!(signal)
 	}
 
+	/// The read id as a uuid.
 	pub fn uuid(&self) -> uuid::Uuid
 	{
 		uuid::Uuid::from_bytes(self.inner.read_id)
@@ -159,6 +168,7 @@ impl Read
 		self.inner.pore_type
 	}
 
+	/// Attempts to get the pore type as a String.
 	pub fn pore_type_string(&self) -> crate::error::Result<String>
 	{
 		let mut c_string = vec![0i8; 10];
@@ -201,6 +211,7 @@ impl Read
 		self.inner.run_info
 	}
 
+	/// The runinfo struct from the meta data for the associated read.
 	pub fn run_info(&self) -> crate::error::Result<crate::runinfo::RunInfo>
 	{
 		let mut run_info = ptr::null_mut();

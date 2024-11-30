@@ -6,8 +6,6 @@ pub use crate::reads::*;
 pub use crate::read::*;
 pub use crate::readbatch::*;
 
-use crate::error::Pod5Error;
-
 #[cfg(feature = "polars")]
 use polars::prelude::*;
 
@@ -15,14 +13,17 @@ use polars::prelude::*;
 use ignore::{WalkBuilder, types::TypesBuilder};
 use std::path::Path;
 
+/// Contains reader options, passed to Reader.
 pub struct ReaderOptions
 {
-	force_disable_file_mapping: i8,
+	force_disable_file_mapping: bool,
 }
 
 impl ReaderOptions
 {
-	pub fn new(force_disable_file_mapping: i8) -> ReaderOptions
+	/// Create a reader options struct to specify when opening pod5 files
+	/// The only option is, is to disable file mapping.
+	pub fn new(force_disable_file_mapping: bool) -> ReaderOptions
 	{
 		ReaderOptions {
 			force_disable_file_mapping,
@@ -32,7 +33,7 @@ impl ReaderOptions
 	pub(crate) fn to_ffi(&self) -> crate::pod5_ffi::Pod5ReaderOptions_t
 	{
 		crate::pod5_ffi::Pod5ReaderOptions_t {
-			force_disable_file_mapping: self.force_disable_file_mapping,
+			force_disable_file_mapping: self.force_disable_file_mapping as i8,
 		}
 	}
 }
@@ -45,7 +46,7 @@ pub(crate) struct InternalReader
 
 impl InternalReader
 {
-	pub fn count(&self) -> Result<usize, Pod5Error>
+	pub(crate) fn count(&self) -> crate::error::Result<usize>
 	{
 		let mut read_count: usize = 0;
 		unsafe {
@@ -55,7 +56,7 @@ impl InternalReader
 		crate::pod5_ok!(read_count)
 	}
 
-	pub fn read_ids(&self) -> Result<Vec<uuid::Uuid>, Pod5Error>
+	pub(crate) fn read_ids(&self) -> crate::error::Result<Vec<uuid::Uuid>>
 	{
 		let read_count = self.count()?;
 		let mut read_ids = vec![[0; 16]; read_count];
@@ -95,7 +96,7 @@ impl InternalReader
 			Ok(reader) => reader,
 			Err(_) =>
 			{
-				return Err(crate::error::Pod5Error::ArrowCompressionError(
+				return Err(crate::error::Error::ArrowCompressionError(
 					"unable to determine signal compression".to_string(),
 				))
 			}
@@ -107,7 +108,7 @@ impl InternalReader
 			Ok(field) => field,
 			Err(_) =>
 			{
-				return Err(crate::error::Pod5Error::ArrowCompressionError(
+				return Err(crate::error::Error::ArrowCompressionError(
 					"unable to determine signal compression".to_string(),
 				))
 			}
@@ -192,6 +193,24 @@ impl Drop for InternalReader
 	}
 }
 
+/// Open pod5 files, directories of pod5 files and iterate over records and reads.
+///
+/// # Example
+///
+/// ```
+/// use decapod::reader::Reader
+/// use uuid::Uuid
+/// use std::error::Error
+///
+/// fn main() -> Result<(), Box<dyn Error>>
+/// {
+///     let reader = Reader::from_path("example.pod5", None)?;
+///
+///     println!("{:?}", &reader.read_ids()?);
+///     Ok(())
+/// }
+/// ````
+
 pub struct Reader
 {
 	pub(crate) inner: Vec<InternalReader>,
@@ -199,7 +218,11 @@ pub struct Reader
 
 impl Reader
 {
-	/// Opens a pod5 file for reading
+	/// Opens a pod5 file or directory of pod5 files for reading.
+	/// # Arguments
+	///
+	/// * `path` - The path to either a pod5 or a directory containing pod5 files.
+	/// * `options` - the [`ReaderOptions`] object. Pass None to use no options (typical).
 	pub fn from_path<P: AsRef<Path>>(
 		path: P,
 		options: Option<ReaderOptions>,
@@ -225,6 +248,11 @@ impl Reader
 		crate::pod5_ok!(reader)
 	}
 
+	/// Opens a combinations of both pod5 file paths and directories containing pod5 files.
+	/// # Arguments
+	///
+	/// * `paths` - The vector of pod5 file and directory paths.
+	/// * `options` - the [`ReaderOptions`] object. Pass None to use no options (typical).
 	pub fn from_vec<P>(
 		paths: Vec<P>,
 		options: Option<ReaderOptions>,
@@ -235,6 +263,11 @@ impl Reader
 		Self::from_iter(paths.iter(), options)
 	}
 
+	/// Opens a combinations of both pod5 file paths and directories containing pod5 files.
+	/// # Arguments
+	///
+	/// * `iter` - The iterator object consisting of pod5 file and directory paths.
+	/// * `options` - the [`ReaderOptions`] object. Pass None to use no options (typical).
 	pub fn from_iter<P, I>(iter: I, options: Option<ReaderOptions>) -> crate::error::Result<Reader>
 	where
 		I: IntoIterator<Item = P>,
@@ -271,9 +304,10 @@ impl Reader
 		let c_string = path
 			.as_ref()
 			.to_str()
-			.ok_or_else(|| Pod5Error::MemoryError("memory error".to_string()))
+			.ok_or_else(|| crate::error::Error::MemoryError("memory error".to_string()))
 			.and_then(|s| {
-				CString::new(s).map_err(|_| Pod5Error::MemoryError("memory error".to_string()))
+				CString::new(s)
+					.map_err(|_| crate::error::Error::MemoryError("memory error".to_string()))
 			});
 
 		let ptr = match options
@@ -331,6 +365,7 @@ impl Reader
 		Ok(results)
 	}
 
+	/// Returns the total number of read ids from all open pod5 files.
 	pub fn count(&self) -> crate::error::Result<usize>
 	{
 		self.inner.iter().try_fold(0usize, |acc, item| {
@@ -339,6 +374,7 @@ impl Reader
 		})
 	}
 
+	/// Returns the uuids for every read id from all open pod5 files.
 	pub fn read_ids(&self) -> crate::error::Result<Vec<uuid::Uuid>>
 	{
 		self.inner.iter().try_fold(Vec::new(), |mut acc, item| {
@@ -349,6 +385,7 @@ impl Reader
 		})
 	}
 
+	/// Returns a vector of all the file info structs found within the open pod5 files.
 	pub fn info(&self) -> Vec<crate::error::Result<crate::fileinfo::FileInfo>>
 	{
 		self.inner
@@ -365,6 +402,7 @@ impl Reader
 			.collect()
 	}
 
+	/// Obtain the runinfo iterator.
 	pub fn run_info_iter(&self) -> crate::runinfo::RunInfoIter
 	{
 		crate::runinfo::RunInfoIter {
@@ -375,6 +413,27 @@ impl Reader
 		}
 	}
 
+	/// Create a Reads iterator for reads found within the open pod5 files.
+	///
+	/// # Arguments
+	///
+	/// * `fetch` - Specify None to obtain all reads, or a vector of uuids for specific reads of interest
+	///
+	/// # Example
+	///
+	/// ```
+	/// let reader = Reader::from_path("sample.pod5", None)?;
+	/// let read_ids = vec![uuid!("002fde30-9e23-4125-9eae-d112c18a81a7")];
+	/// for read in reader.reads_iter(Some(read_ids))
+	/// {
+	///     let read = read?;
+	///     println!("{}", read.read_id()?);
+	/// }
+	/// ```
+	///
+	/// # Returns
+	///
+	/// A reads iterator.
 	pub fn reads_iter(&self, fetch: Option<Vec<uuid::Uuid>>) -> Reads
 	{
 		Reads {
@@ -406,6 +465,11 @@ impl Reader
 	//		.unwrap())
 	//}
 
+	/// Obtain the batch records iterator.
+	/// Currently only useful for converting a record of reads to a Polars DataFrame.
+	/// # Arguments
+	///
+	/// * `fetch` - Specific read ids can be requested in the same way as [`Reader::reads_iter`].
 	pub fn batch_records_iter(&self, fetch: Option<Vec<uuid::Uuid>>) -> BatchRecordIter
 	{
 		BatchRecordIter {

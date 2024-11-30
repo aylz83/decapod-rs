@@ -1,13 +1,14 @@
-use decapod::reader;
+use decapod::reader::Reader;
 
 use serde_json;
-use anyhow;
 
 use uuid::uuid;
 
 use std::env;
 
-fn main() -> anyhow::Result<()>
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>>
 {
 	let args: Vec<String> = env::args().collect();
 
@@ -17,7 +18,7 @@ fn main() -> anyhow::Result<()>
 
 	let read_ids = Some(read_ids);
 
-	let reader = reader::Reader::from_path(args[1].as_str(), None)?;
+	let reader = Reader::from_path(args[1].as_str(), None)?;
 
 	println!("{:?}", &reader.read_ids()?);
 

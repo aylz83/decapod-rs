@@ -1,3 +1,5 @@
+#![cfg_attr(doc, feature(doc_cfg))]
+
 use std::ptr;
 use std::ffi::c_void;
 use std::any::Any;
@@ -7,15 +9,49 @@ use indexmap::IndexMap;
 #[cfg(feature = "polars")]
 use polars::prelude::*;
 
+/// Record information, see [`BatchRecordIter`] for usage.
 pub struct BatchRecord
 {
 	pub(crate) inner: *mut crate::pod5_ffi::Pod5ReadRecordBatch_t,
+
+	#[cfg(feature = "polars")]
 	pub(crate) reader: *mut crate::pod5_ffi::Pod5FileReader_t,
+
+	#[cfg(feature = "polars")]
 	pub(crate) fetch_path: Option<Vec<u32>>,
 }
 
 impl BatchRecord
 {
+	/// Create a Polars dataframe from a record consisting of reads.
+	/// Requires the polars feature to be enabled.
+	///
+	/// # Arguements
+	///
+	/// * `fields` - Optional. Provide None for all fields or a vector of Strings for the fields to wrangle into a DataFrame.
+	///
+	/// Aaccepted fields:
+	/// - read_id
+	/// - read_number
+	/// - start_sample
+	/// - median_before
+	/// - channel
+	/// - well
+	/// - pore_type
+	/// - calibration_offset
+	/// - calibration_scale
+	/// - end_reason
+	/// - end_reason_forced
+	/// - run_info
+	/// - num_minknow_events
+	/// - tracked_scaling_scale
+	/// - tracked_scaling_shift
+	/// - predicted_scaling_scale
+	/// - predicted_scaling_shift
+	/// - num_reads_since_mux_change
+	/// - time_since_mux_change
+	/// - signal_row_count
+	/// - num_samples
 	#[cfg(feature = "polars")]
 	pub fn to_df(&self, fields: &Option<Vec<&str>>) -> crate::error::Result<DataFrame>
 	{
@@ -391,7 +427,7 @@ impl BatchRecord
 		let record_df = match record_df
 		{
 			Ok(df) => df,
-			Err(_) => return Err(crate::error::Pod5Error::UnknownError("".to_string())),
+			Err(_) => return Err(crate::error::Error::UnknownError("".to_string())),
 		};
 
 		crate::pod5_ok!(record_df)
@@ -408,6 +444,17 @@ impl Drop for BatchRecord
 	}
 }
 
+/// Iterator for pod5 records.
+/// Currently only useful for creating Polars DataFrames from pod5 records.
+/// # Example
+/// ````
+/// let reader = Reader::from_path("sample.pod5", None);
+/// for batch in reader.batch_records_iter(None)
+/// {
+///     let batch = batch?;
+///     println!("{}", batch.to_df(&None)?);
+/// }
+/// ````
 pub struct BatchRecordIter<'a>
 {
 	pub(crate) rows: usize,

@@ -22,7 +22,21 @@ cargo build # build the example
 
 # Example usage
 
-- TODO, see the [example](example/src/main.rs) for now.
+```{rust}
+use decapod::reader::Reader;
+use uuid::Uuid;
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>>
+{
+    let reader = Reader::from_path("example.pod5", None)?;
+    println!("{:?}", &reader.read_ids()?);
+
+    Ok(())
+}
+````
+
+Also, see the [example](example/src/main.rs) application.
 
 # Features
 
@@ -42,6 +56,7 @@ cargo build # build the example
 - [x] Serialisation of reads with serde.
 - [x] Conversion of reads to Polars dataframes.
 - [ ] Writing pod5 files.
+- [ ] Remove bindgen warnings.
 - [x] Support older pod5 specifications other than V3.
 
 # TODO
