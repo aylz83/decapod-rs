@@ -58,7 +58,3 @@ Also, see the [example](example/src/main.rs) application.
 - [ ] Writing pod5 files.
 - [ ] Remove bindgen warnings.
 - [x] Support older pod5 specifications other than V3.
-
-# TODO
-
-- Documentation
