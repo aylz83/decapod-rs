@@ -8,6 +8,82 @@ pub use uuid;
 #[cfg(feature = "serde")]
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
+pub struct Calibration<'a>
+{
+	pub(crate) inner: &'a Read,
+
+	pub(crate) digitisation: Option<u16>,
+	pub(crate) range: Option<f32>,
+}
+
+impl<'a> Calibration<'a>
+{
+	pub fn offset(&self) -> f32
+	{
+		self.inner.inner.calibration_offset
+	}
+
+	pub fn scale(&self) -> f32
+	{
+		self.inner.inner.calibration_scale
+	}
+
+	pub fn digitisation(&mut self) -> u16
+	{
+		match self.digitisation
+		{
+			Some(value) => value,
+			None =>
+			{
+				let mut calibration_data = crate::pod5_ffi::CalibrationExtraData_t {
+					digitisation: 0,
+					range: 0.0,
+				};
+
+				unsafe {
+					crate::pod5_ffi::pod5_get_calibration_extra_info(
+						self.inner.batch_record,
+						self.inner.batch_row,
+						&mut calibration_data,
+					);
+				}
+
+				self.digitisation = Some(calibration_data.digitisation);
+				self.range = Some(calibration_data.range);
+
+				calibration_data.digitisation
+			}
+		}
+	}
+
+	pub fn range(&mut self) -> f32
+	{
+		match self.range
+		{
+			Some(value) => value,
+			None =>
+			{
+				let mut calibration_data = crate::pod5_ffi::CalibrationExtraData_t {
+					digitisation: 0,
+					range: 0.0,
+				};
+
+				unsafe {
+					crate::pod5_ffi::pod5_get_calibration_extra_info(
+						self.inner.batch_record,
+						self.inner.batch_row,
+						&mut calibration_data,
+					);
+				}
+
+				self.digitisation = Some(calibration_data.digitisation);
+				self.range = Some(calibration_data.range);
+
+				calibration_data.range
+			}
+		}
+	}
+}
 pub struct Read
 {
 	pub(crate) inner: crate::pod5_ffi::ReadBatchRowInfo_t,
@@ -101,14 +177,13 @@ impl Read
 			.map(|s| s.to_string())?)
 	}
 
-	pub fn calibration_offset(&self) -> f32
+	pub fn calibration(&self) -> Calibration
 	{
-		self.inner.calibration_offset
-	}
-
-	pub fn calibration_scale(&self) -> f32
-	{
-		self.inner.calibration_scale
+		Calibration {
+			inner: self,
+			digitisation: None,
+			range: None,
+		}
 	}
 
 	pub fn end_reason(&self) -> crate::endreason::EndReason
@@ -197,6 +272,8 @@ impl Serialize for Read
 		// Start serializing the struct with the specified number of fields
 		let mut state = serializer.serialize_struct("Read", 21)?;
 
+		let calibration = self.calibration();
+
 		// Serialize each field with its name
 		state.serialize_field("uuid", &self.uuid())?;
 		state.serialize_field("signal", &self.signal().unwrap_or(vec![0i16; 0]))?;
@@ -206,8 +283,8 @@ impl Serialize for Read
 		state.serialize_field("channel", &self.channel())?;
 		state.serialize_field("well", &self.well())?;
 		state.serialize_field("pore_type", &self.pore_type())?;
-		state.serialize_field("calibration_offset", &self.calibration_offset())?;
-		state.serialize_field("calibration_scale", &self.calibration_scale())?;
+		state.serialize_field("calibration_offset", &calibration.offset())?;
+		state.serialize_field("calibration_scale", &calibration.scale())?;
 		state.serialize_field("end_reason", &self.end_reason())?;
 		state.serialize_field("end_reason_forced", &self.end_reason_forced())?;
 		state.serialize_field("run_info", &self.run_info_num())?;

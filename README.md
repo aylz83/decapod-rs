@@ -27,7 +27,9 @@ cargo build # build the example
 # Features
 
 - Iterate over all reads.
+- Iterate over only specific reads to save time.
 - Extract run info.
+- Extract calibration info.
 - Serialise reads with serde (enabled with the 'serde' feature).
 - Convert batch records of reads to Polars dataframes (enabled with the 'polars' feature).
 - Supports reading of multiple pod5 files.
@@ -40,5 +42,8 @@ cargo build # build the example
 - [x] Serialisation of reads with serde.
 - [x] Conversion of reads to Polars dataframes.
 - [ ] Writing pod5 files.
-- [ ] Support older pod5 specifications other than V3.
-- [ ] Create documentation.
+- [x] Support older pod5 specifications other than V3.
+
+# TODO
+
+- Documentation

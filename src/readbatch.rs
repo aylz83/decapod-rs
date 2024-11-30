@@ -98,6 +98,8 @@ impl BatchRecord
 				has_compression: true,
 			};
 
+			let calibration = read_result.calibration();
+
 			for field in which_fields
 			{
 				match *field
@@ -137,11 +139,11 @@ impl BatchRecord
 					"calibration_offset" => fields_set
 						.get_mut(field)
 						.unwrap()
-						.push(Box::new(read_result.calibration_offset()) as Box<dyn Any>),
+						.push(Box::new(calibration.offset()) as Box<dyn Any>),
 					"calibration_scale" => fields_set
 						.get_mut(field)
 						.unwrap()
-						.push(Box::new(read_result.calibration_scale()) as Box<dyn Any>),
+						.push(Box::new(calibration.scale()) as Box<dyn Any>),
 					"end_reason" => fields_set
 						.get_mut(field)
 						.unwrap()
