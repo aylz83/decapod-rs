@@ -195,6 +195,10 @@ impl Drop for InternalReader
 
 /// Open pod5 files, directories of pod5 files and iterate over records and reads.
 ///
+/// # Features
+///
+/// Opening directories consisting of pod5 files requires the `recursive` feature to be enabled.
+///
 /// # Example
 ///
 /// ```

@@ -1,6 +1,6 @@
 #![warn(missing_docs)]
 
-//! Rust bindings for the pod5-file-format (https::/github.com/nanoporetech/pod5-file-format) library.
+//! Rust bindings for the pod5-file-format (<https::/github.com/nanoporetech/pod5-file-format>) library.
 //!
 //! # Example
 //!

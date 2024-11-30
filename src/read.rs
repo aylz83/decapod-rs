@@ -19,13 +19,13 @@ pub struct Calibration<'a>
 
 impl<'a> Calibration<'a>
 {
-	/// Calibration offset
+	/// Calibration offset.
 	pub fn offset(&self) -> f32
 	{
 		self.inner.inner.calibration_offset
 	}
 
-	/// Calibration scale
+	/// Calibration scale.
 	pub fn scale(&self) -> f32
 	{
 		self.inner.inner.calibration_scale
@@ -91,6 +91,7 @@ impl<'a> Calibration<'a>
 }
 
 /// pod5 read information.
+/// see <https://github.com/nanoporetech/pod5-file-format/blob/master/docs/tables/reads.toml> for full pod5-file-format specification information.
 pub struct Read
 {
 	pub(crate) inner: crate::pod5_ffi::ReadBatchRowInfo_t,
@@ -138,31 +139,37 @@ impl Read
 		uuid::Uuid::from_bytes(self.inner.read_id)
 	}
 
+	/// The read number.
 	pub fn read_number(&self) -> u32
 	{
 		self.inner.read_number
 	}
 
+	/// Number of samples in the channel before read was taken.
 	pub fn start_sample(&self) -> u64
 	{
 		self.inner.start_sample
 	}
 
+	/// Current level before read taken.
 	pub fn median_before(&self) -> f32
 	{
 		self.inner.median_before
 	}
 
+	/// 1-indexed channel.
 	pub fn channel(&self) -> u16
 	{
 		self.inner.channel
 	}
 
+	/// 1-indexed well number.
 	pub fn well(&self) -> u8
 	{
 		self.inner.well
 	}
 
+	/// Raw pore type.
 	pub fn pore_type(&self) -> i16
 	{
 		self.inner.pore_type
@@ -187,6 +194,7 @@ impl Read
 			.map(|s| s.to_string())?)
 	}
 
+	/// Calibration and extra calibration data for the read.
 	pub fn calibration(&self) -> Calibration
 	{
 		Calibration {
@@ -196,16 +204,19 @@ impl Read
 		}
 	}
 
+	/// See [crate::endreason::EndReason]
 	pub fn end_reason(&self) -> crate::endreason::EndReason
 	{
 		crate::endreason::EndReason::end_reason_from_code(self.inner.end_reason)
 	}
 
+	/// True if the read was forcefully ended.
 	pub fn end_reason_forced(&self) -> bool
 	{
 		self.inner.end_reason_forced == 1
 	}
 
+	/// Which run info number.
 	pub fn run_info_num(&self) -> i16
 	{
 		self.inner.run_info
@@ -227,46 +238,55 @@ impl Read
 		crate::pod5_ok!(crate::runinfo::RunInfo { inner: run_info })
 	}
 
+	/// Number of minknow events that the read contains.
 	pub fn num_minknow_events(&self) -> u64
 	{
 		self.inner.num_minknow_events
 	}
 
+	/// Tracked scaling scale.
 	pub fn tracked_scaling_scale(&self) -> f32
 	{
 		self.inner.tracked_scaling_scale
 	}
 
+	/// Tracked scaling shift.
 	pub fn tracked_scaling_shift(&self) -> f32
 	{
 		self.inner.tracked_scaling_shift
 	}
 
+	/// Predicted scaling scale.
 	pub fn predicted_scaling_scale(&self) -> f32
 	{
 		self.inner.predicted_scaling_scale
 	}
 
+	/// Predicted scaling shift.
 	pub fn predicted_scaling_shift(&self) -> f32
 	{
 		self.inner.predicted_scaling_shift
 	}
 
+	/// Number of reads since last mux change.
 	pub fn num_reads_since_mux_change(&self) -> u32
 	{
 		self.inner.num_reads_since_mux_change
 	}
 
+	/// Time in seconds since last mux change.
 	pub fn time_since_mux_change(&self) -> f32
 	{
 		self.inner.time_since_mux_change
 	}
 
+	/// Number of signal row count.
 	pub fn signal_row_count(&self) -> i64
 	{
 		self.inner.signal_row_count
 	}
 
+	/// Number of signal samples.
 	pub fn num_samples(&self) -> u64
 	{
 		self.inner.num_samples

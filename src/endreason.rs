@@ -19,7 +19,7 @@ pub enum EndReason
 
 impl EndReason
 {
-	pub fn end_reason_from_code(code: i16) -> EndReason
+	pub(crate) fn end_reason_from_code(code: i16) -> EndReason
 	{
 		match code
 		{
