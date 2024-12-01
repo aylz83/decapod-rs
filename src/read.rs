@@ -2,8 +2,7 @@
 
 use std::ffi::CStr;
 use std::ptr;
-
-pub use uuid;
+use std::fmt;
 
 #[cfg(feature = "serde")]
 use serde::ser::{Serialize, SerializeStruct, Serializer};
@@ -290,6 +289,61 @@ impl Read
 	pub fn num_samples(&self) -> u64
 	{
 		self.inner.num_samples
+	}
+}
+
+impl fmt::Display for Read
+{
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+	{
+		let calibration = self.calibration();
+
+		writeln!(f, "uuid = {}", &self.uuid())?;
+		writeln!(f, "signal = {:?}", self.signal().unwrap_or(vec![0i16; 0]))?;
+		writeln!(f, "read_number = {}", self.read_number())?;
+		writeln!(f, "start_sample = {}", self.start_sample())?;
+		writeln!(f, "median_before = {}", self.median_before())?;
+		writeln!(f, "channel = {}", self.channel())?;
+		writeln!(f, "well = {}", self.well())?;
+		writeln!(f, "pore_type = {}", self.pore_type())?;
+		writeln!(f, "calibration_offset = {}", calibration.offset())?;
+		writeln!(f, "calibration_scale = {}", calibration.scale())?;
+		writeln!(f, "end_reason = {}", self.end_reason())?;
+		writeln!(f, "end_reason_forced = {}", self.end_reason_forced())?;
+		writeln!(f, "run_info = {}", self.run_info_num())?;
+		writeln!(f, "num_minknow_events = {}", self.num_minknow_events())?;
+		writeln!(
+			f,
+			"tracked_scaling_scale = {}",
+			self.tracked_scaling_scale()
+		)?;
+		writeln!(
+			f,
+			"tracked_scaling_shift = {}",
+			self.tracked_scaling_shift()
+		)?;
+		writeln!(
+			f,
+			"predicted_scaling_scale = {}",
+			self.predicted_scaling_scale()
+		)?;
+		writeln!(
+			f,
+			"predicted_scaling_shift = {}",
+			self.predicted_scaling_shift()
+		)?;
+		writeln!(
+			f,
+			"num_reads_since_mux_change = {}",
+			self.num_reads_since_mux_change(),
+		)?;
+		writeln!(
+			f,
+			"time_since_mux_change = {}",
+			self.time_since_mux_change()
+		)?;
+		writeln!(f, "signal_row_count = {}", self.signal_row_count())?;
+		writeln!(f, "num_samples = {}", self.num_samples())
 	}
 }
 

@@ -1,6 +1,8 @@
 use std::{ffi::CString, ptr};
 
+use std::path::PathBuf;
 use std::io::{Read as StdRead, Seek, SeekFrom};
+use std::convert::TryFrom;
 
 pub use crate::reads::*;
 pub use crate::read::*;
@@ -202,9 +204,9 @@ impl Drop for InternalReader
 /// # Example
 ///
 /// ```
-/// use decapod::reader::Reader
-/// use uuid::Uuid
-/// use std::error::Error
+/// use decapod::reader::Reader;
+/// use uuid::Uuid;
+/// use std::error::Error;
 ///
 /// fn main() -> Result<(), Box<dyn Error>>
 /// {
@@ -501,4 +503,64 @@ impl Reader
 	//fn read(&self, read: &mut Read) -> bool
 	//{
 	//}
+}
+
+impl TryFrom<PathBuf> for Reader
+{
+	type Error = crate::error::Error;
+
+	fn try_from(path: PathBuf) -> crate::error::Result<Reader>
+	{
+		Reader::from_path(path, None)
+	}
+}
+
+impl TryFrom<&str> for Reader
+{
+	type Error = crate::error::Error;
+
+	fn try_from(path: &str) -> crate::error::Result<Reader>
+	{
+		Reader::from_path(PathBuf::from(path), None)
+	}
+}
+
+impl TryFrom<String> for Reader
+{
+	type Error = crate::error::Error;
+
+	fn try_from(path: String) -> crate::error::Result<Reader>
+	{
+		Reader::from_path(PathBuf::from(path), None)
+	}
+}
+
+impl TryFrom<Vec<PathBuf>> for Reader
+{
+	type Error = crate::error::Error;
+
+	fn try_from(paths: Vec<PathBuf>) -> crate::error::Result<Reader>
+	{
+		Reader::from_vec(paths, None)
+	}
+}
+
+impl TryFrom<Vec<&str>> for Reader
+{
+	type Error = crate::error::Error;
+
+	fn try_from(paths: Vec<&str>) -> crate::error::Result<Reader>
+	{
+		Reader::from_iter(paths.into_iter().map(|p| PathBuf::from(p)), None)
+	}
+}
+
+impl TryFrom<Vec<String>> for Reader
+{
+	type Error = crate::error::Error;
+
+	fn try_from(paths: Vec<String>) -> crate::error::Result<Reader>
+	{
+		Reader::from_iter(paths.into_iter().map(|p| PathBuf::from(p)), None)
+	}
 }
