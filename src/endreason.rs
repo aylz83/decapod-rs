@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[doc(hidden)]
 #[repr(u32)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Debug)]

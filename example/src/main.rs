@@ -16,13 +16,11 @@ fn main() -> Result<(), Box<dyn Error>>
 	read_ids.push(uuid!("002fde30-9e23-4125-9eae-d112c18a81a7"));
 	read_ids.push(uuid!("006d1319-2877-4b34-85df-34de7250a47b"));
 
-	let read_ids = Some(read_ids);
-
 	let reader = Reader::from_path(args[1].as_str(), None)?;
 
 	println!("{:?}", &reader.read_ids()?);
 
-	let reads = reader.reads_iter(None);
+	let reads = reader.reads_iter(read_ids);
 
 	for read in reads
 	{

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["EndReason"]};
+window.SIDEBAR_ITEMS = {};

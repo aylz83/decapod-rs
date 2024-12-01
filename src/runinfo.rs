@@ -22,6 +22,9 @@ impl KeyValueData
 	}
 }
 
+/// Run information metadata from the pod5 such as experiment name or flowcell ID.
+/// Obtained either by the [`crate::reader::Reader::run_info_iter`] function for all run info objects,
+/// or by calling [`crate::reader::Read::run_info`] directly on a read.
 pub struct RunInfo
 {
 	pub(crate) inner: *mut crate::pod5_ffi::RunInfoDictData_t,
@@ -29,6 +32,7 @@ pub struct RunInfo
 
 impl RunInfo
 {
+	/// Acquisition id.
 	pub fn acquisition_id(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -37,21 +41,25 @@ impl RunInfo
 		}
 	}
 
+	/// Acquisition start time in miliseconds.
 	pub fn acquisition_start_time_ms(&self) -> i64
 	{
 		unsafe { (*self.inner).acquisition_start_time_ms }
 	}
 
+	/// Max adc.
 	pub fn adc_max(&self) -> i16
 	{
 		unsafe { (*self.inner).adc_max }
 	}
 
+	/// Min adc.
 	pub fn adc_min(&self) -> i16
 	{
 		unsafe { (*self.inner).adc_min }
 	}
 
+	/// Context data.
 	pub fn context_tags(&self) -> KeyValueData
 	{
 		KeyValueData {
@@ -59,6 +67,7 @@ impl RunInfo
 		}
 	}
 
+	/// Get the experiment name if set.
 	pub fn experiment_name(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -67,6 +76,7 @@ impl RunInfo
 		}
 	}
 
+	/// Get the flowcell ID.
 	pub fn flow_cell_id(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -75,6 +85,7 @@ impl RunInfo
 		}
 	}
 
+	/// Flowcell product code.
 	pub fn flow_cell_product_code(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -83,6 +94,7 @@ impl RunInfo
 		}
 	}
 
+	/// Protocol name if set.
 	pub fn protocol_name(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -91,6 +103,7 @@ impl RunInfo
 		}
 	}
 
+	/// Protocol run id if set.
 	pub fn protocol_run_id(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -99,11 +112,13 @@ impl RunInfo
 		}
 	}
 
+	/// Start time.
 	pub fn protocol_start_time_ms(&self) -> i64
 	{
 		unsafe { (*self.inner).protocol_start_time_ms }
 	}
 
+	/// Sample id if set.
 	pub fn sample_id(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -112,11 +127,13 @@ impl RunInfo
 		}
 	}
 
+	/// The sample rate of the flowcell.
 	pub fn sample_rate(&self) -> u16
 	{
 		unsafe { (*self.inner).sample_rate }
 	}
 
+	/// The sequencing kit used.
 	pub fn sequencing_kit(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -125,6 +142,7 @@ impl RunInfo
 		}
 	}
 
+	/// Sequencer position.
 	pub fn sequencer_position(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -133,6 +151,7 @@ impl RunInfo
 		}
 	}
 
+	/// Sequencer position type.
 	pub fn sequencer_position_type(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -141,6 +160,7 @@ impl RunInfo
 		}
 	}
 
+	/// Software used for sequencing.
 	pub fn software(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -149,6 +169,7 @@ impl RunInfo
 		}
 	}
 
+	/// System name from the seequencing software if set.
 	pub fn system_name(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -157,6 +178,7 @@ impl RunInfo
 		}
 	}
 
+	/// System type.
 	pub fn system_type(&self) -> Result<&str, std::str::Utf8Error>
 	{
 		unsafe {
@@ -165,6 +187,7 @@ impl RunInfo
 		}
 	}
 
+	/// Tracking id data.
 	pub fn tracking_id(&self) -> KeyValueData
 	{
 		KeyValueData {
@@ -273,6 +296,8 @@ impl Drop for RunInfo
 	}
 }
 
+/// Iterator for run info metadata.
+/// See [`crate::reader::Reader::run_info_iter`] for full usage.
 pub struct RunInfoIter<'a>
 {
 	pub(crate) rows: u16,

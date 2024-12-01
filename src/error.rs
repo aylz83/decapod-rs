@@ -76,8 +76,10 @@ macro_rules! pod5_ok {
 	}};
 }
 
+#[doc(hidden)]
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
+#[doc(hidden)]
 #[derive(Error, Debug)]
 pub enum Error
 {

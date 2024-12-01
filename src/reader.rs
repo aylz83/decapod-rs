@@ -227,11 +227,13 @@ impl Reader
 	///
 	/// * `path` - The path to either a pod5 or a directory containing pod5 files.
 	/// * `options` - the [`ReaderOptions`] object. Pass None to use no options (typical).
-	pub fn from_path<P: AsRef<Path>>(
+	pub fn from_path<P: AsRef<Path>, R: Into<Option<ReaderOptions>>>(
 		path: P,
-		options: Option<ReaderOptions>,
+		options: R,
 	) -> crate::error::Result<Reader>
 	{
+		let options = options.into();
+
 		unsafe {
 			crate::pod5_ffi::pod5_init();
 		}
@@ -257,9 +259,9 @@ impl Reader
 	///
 	/// * `paths` - The vector of pod5 file and directory paths.
 	/// * `options` - the [`ReaderOptions`] object. Pass None to use no options (typical).
-	pub fn from_vec<P>(
+	pub fn from_vec<P, R: Into<Option<ReaderOptions>>>(
 		paths: Vec<P>,
-		options: Option<ReaderOptions>,
+		options: R,
 	) -> crate::error::Result<Reader>
 	where
 		P: AsRef<Path>,
@@ -272,11 +274,16 @@ impl Reader
 	///
 	/// * `iter` - The iterator object consisting of pod5 file and directory paths.
 	/// * `options` - the [`ReaderOptions`] object. Pass None to use no options (typical).
-	pub fn from_iter<P, I>(iter: I, options: Option<ReaderOptions>) -> crate::error::Result<Reader>
+	pub fn from_iter<P, I, R: Into<Option<ReaderOptions>>>(
+		iter: I,
+		options: R,
+	) -> crate::error::Result<Reader>
 	where
 		I: IntoIterator<Item = P>,
 		P: AsRef<Path>,
 	{
+		let options = options.into();
+
 		unsafe {
 			crate::pod5_ffi::pod5_init();
 		}
@@ -428,7 +435,7 @@ impl Reader
 	/// ```
 	/// let reader = Reader::from_path("sample.pod5", None)?;
 	/// let read_ids = vec![uuid!("002fde30-9e23-4125-9eae-d112c18a81a7")];
-	/// for read in reader.reads_iter(Some(read_ids))
+	/// for read in reader.reads_iter(read_ids)
 	/// {
 	///     let read = read?;
 	///     println!("{}", read.read_id()?);
@@ -438,8 +445,10 @@ impl Reader
 	/// # Returns
 	///
 	/// A reads iterator.
-	pub fn reads_iter(&self, fetch: Option<Vec<uuid::Uuid>>) -> Reads
+	pub fn reads_iter<U: Into<Option<Vec<uuid::Uuid>>>>(&self, fetch: U) -> Reads
 	{
+		let fetch = fetch.into();
+
 		Reads {
 			reader: self.inner.iter(),
 			batch_count: 0,
@@ -474,8 +483,11 @@ impl Reader
 	/// # Arguments
 	///
 	/// * `fetch` - Specific read ids can be requested in the same way as [`Reader::reads_iter`].
-	pub fn batch_records_iter(&self, fetch: Option<Vec<uuid::Uuid>>) -> BatchRecordIter
+	pub fn batch_records_iter<U: Into<Option<Vec<uuid::Uuid>>>>(&self, fetch: U)
+		-> BatchRecordIter
 	{
+		let fetch = fetch.into();
+
 		BatchRecordIter {
 			reader: self.inner.iter(),
 			rows: 0,
