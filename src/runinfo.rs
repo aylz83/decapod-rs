@@ -237,8 +237,8 @@ impl fmt::Display for RunInfo
 			self.acquisition_start_time_ms()
 		)?;
 		writeln!(f, "adc_max = {}", self.adc_max())?;
-		writeln!(f, "adc_min {}", self.adc_min())?;
-		//write!(f, "{}\n", self.context_tags())?;
+		writeln!(f, "adc_min = {}", self.adc_min())?;
+		writeln!(f, "context_tags = {:?}", self.context_tags())?;
 		writeln!(
 			f,
 			"experiment_name = {}",
@@ -300,8 +300,8 @@ impl fmt::Display for RunInfo
 			f,
 			"system_type = {}",
 			RunInfo::handle_result(self.system_type())
-		)
-		//write!(f, "{}\n", self.tracking_id())
+		)?;
+		writeln!(f, "tracking_id = {:?}", self.tracking_id())
 	}
 }
 
