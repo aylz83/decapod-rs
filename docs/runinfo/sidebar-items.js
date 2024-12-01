@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["KeyValueData","RunInfo","RunInfoIter"]};
+window.SIDEBAR_ITEMS = {"struct":["RunInfo","RunInfoIter"]};

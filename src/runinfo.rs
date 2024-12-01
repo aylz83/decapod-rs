@@ -1,26 +1,7 @@
 use std::ffi::CStr;
 use std::fmt;
 use std::ptr;
-
-pub struct KeyValueData
-{
-	inner: crate::pod5_ffi::KeyValueData,
-}
-
-impl KeyValueData
-{
-	pub fn keys(&self) -> &[i8]
-	{
-		// Create a slice from the pointer and size
-		unsafe { std::slice::from_raw_parts(*self.inner.keys, self.inner.size) }
-	}
-
-	pub fn values(&self) -> &[i8]
-	{
-		// Create a slice from the pointer and size
-		unsafe { std::slice::from_raw_parts(*self.inner.values, self.inner.size) }
-	}
-}
+use std::collections::HashMap;
 
 /// Run information metadata from the pod5 such as experiment name or flowcell ID.
 /// Obtained either by the [`crate::reader::Reader::run_info_iter`] function for all run info objects,
@@ -60,11 +41,30 @@ impl RunInfo
 	}
 
 	/// Context data.
-	pub fn context_tags(&self) -> KeyValueData
+	pub fn context_tags(&self) -> HashMap<String, String>
 	{
-		KeyValueData {
-			inner: unsafe { (*self.inner).context_tags },
-		}
+		let keys = unsafe {
+			std::slice::from_raw_parts(
+				(*self.inner).context_tags.keys,
+				(*self.inner).context_tags.size,
+			)
+		};
+
+		let values = unsafe {
+			std::slice::from_raw_parts(
+				(*self.inner).context_tags.values,
+				(*self.inner).context_tags.size,
+			)
+		};
+
+		keys.iter()
+			.map(|value| unsafe { CStr::from_ptr(*value).to_string_lossy().into() })
+			.zip(
+				values
+					.iter()
+					.map(|value| unsafe { CStr::from_ptr(*value).to_string_lossy().into() }),
+			)
+			.collect()
 	}
 
 	/// Get the experiment name if set.
@@ -188,11 +188,30 @@ impl RunInfo
 	}
 
 	/// Tracking id data.
-	pub fn tracking_id(&self) -> KeyValueData
+	pub fn tracking_id(&self) -> HashMap<String, String>
 	{
-		KeyValueData {
-			inner: unsafe { (*self.inner).tracking_id },
-		}
+		let keys = unsafe {
+			std::slice::from_raw_parts(
+				(*self.inner).tracking_id.keys,
+				(*self.inner).tracking_id.size,
+			)
+		};
+
+		let values = unsafe {
+			std::slice::from_raw_parts(
+				(*self.inner).tracking_id.values,
+				(*self.inner).tracking_id.size,
+			)
+		};
+
+		keys.iter()
+			.map(|value| unsafe { CStr::from_ptr(*value).to_string_lossy().into() })
+			.zip(
+				values
+					.iter()
+					.map(|value| unsafe { CStr::from_ptr(*value).to_string_lossy().into() }),
+			)
+			.collect()
 	}
 
 	fn handle_result<T: fmt::Display, E: fmt::Debug>(result: Result<T, E>) -> String
